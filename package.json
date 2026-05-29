@@ -1,0 +1,115 @@
+{
+  "name": "@gg-utils/env-materialize-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reusable env materialization command and config primitives.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./cli-args": {
+      "types": "./src/cli-args.ts",
+      "default": "./src/cli-args.ts"
+    },
+    "./cli-runner": {
+      "types": "./src/cli-runner.ts",
+      "default": "./src/cli-runner.ts"
+    },
+    "./command-preview": {
+      "types": "./src/command-preview.ts",
+      "default": "./src/command-preview.ts"
+    },
+    "./format-results": {
+      "types": "./src/format-results.ts",
+      "default": "./src/format-results.ts"
+    },
+    "./interactive-menu": {
+      "types": "./src/interactive-menu.ts",
+      "default": "./src/interactive-menu.ts"
+    },
+    "./ink-wizard-model": {
+      "types": "./src/ink-wizard-model.ts",
+      "default": "./src/ink-wizard-model.ts"
+    },
+    "./key-projections": {
+      "types": "./src/key-projections.ts",
+      "default": "./src/key-projections.ts"
+    },
+    "./modes": {
+      "types": "./src/modes.ts",
+      "default": "./src/modes.ts"
+    },
+    "./opentui-wizard-model": {
+      "types": "./src/opentui-wizard-model.ts",
+      "default": "./src/opentui-wizard-model.ts"
+    },
+    "./package-render-values": {
+      "types": "./src/package-render-values.ts",
+      "default": "./src/package-render-values.ts"
+    },
+    "./seed-files": {
+      "types": "./src/seed-files.ts",
+      "default": "./src/seed-files.ts"
+    },
+    "./target-files": {
+      "types": "./src/target-files.ts",
+      "default": "./src/target-files.ts"
+    },
+    "./target-runner": {
+      "types": "./src/target-runner.ts",
+      "default": "./src/target-runner.ts"
+    },
+    "./ui-helpers": {
+      "types": "./src/ui-helpers.ts",
+      "default": "./src/ui-helpers.ts"
+    },
+    "./ui-launcher": {
+      "types": "./src/ui-launcher.ts",
+      "default": "./src/ui-launcher.ts"
+    },
+    "./workspace-values": {
+      "types": "./src/workspace-values.ts",
+      "default": "./src/workspace-values.ts"
+    },
+    "./write-target-file": {
+      "types": "./src/write-target-file.ts",
+      "default": "./src/write-target-file.ts"
+    },
+    "./package.json": "./package.json",
+    "./opentui-app": {
+      "types": "./src/opentui-app.tsx",
+      "default": "./src/opentui-app.tsx"
+    },
+    "./ink-app": {
+      "types": "./src/ink-app.tsx",
+      "default": "./src/ink-app.tsx"
+    }
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "!src/**/*.unit.test.ts",
+    "README.md",
+    "tsconfig.json",
+    "tsconfig.build.json"
+  ],
+  "engines": {
+    "node": ">=24.11.1 <25",
+    "npm": ">=9.0.0"
+  },
+  "packageManager": "npm@11.12.1",
+  "dependencies": {
+    "@gg-utils/env-materialize-core": "git+https://github.com/gg-utils/env-materialize-core.git#main"
+  },
+  "scripts": {
+    "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "type-check": "node ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
+    "test": "node ../../node_modules/tsx/dist/cli.mjs --test \"src/**/*.unit.test.ts\""
+  }
+}
