@@ -15,4 +15,3 @@ import type { EnvMaterializeKit_TargetMutationResult } from "./write-target-file
 export declare function EnvMaterializeKit_formatResultLines(results: readonly EnvMaterializeKit_TargetMutationResult[]): string[];
 /** Joins formatted result lines with newlines for one-shot CLI printing. */
 export declare function EnvMaterializeKit_formatResultsStdout(results: readonly EnvMaterializeKit_TargetMutationResult[]): string;
-//# sourceMappingURL=format-results.d.ts.map

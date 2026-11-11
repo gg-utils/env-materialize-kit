@@ -83,4 +83,3 @@ export declare function EnvMaterializeKit_runInteractiveMenu<Session extends Env
     runScript: EnvMaterializeKit_RunInteractiveMenuScript<Session>;
     session: Session;
 }): Promise<void>;
-//# sourceMappingURL=interactive-menu.d.ts.map

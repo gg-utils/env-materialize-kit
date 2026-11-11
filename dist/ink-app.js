@@ -10,7 +10,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
  * @see packages/env-materialize-kit/src/ink-wizard-model.ts - Shared wizard step helpers.
  * @documentation reviewed=2026-05-21 standard=FILE_OVERVIEW_STANDARDS_TYPESCRIPT@3
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { EnvMaterializeKit_findMachineProfileLabelIndex, EnvMaterializeKit_findSelectedValueIndex, EnvMaterializeKit_getInkSessionDoneStatusLabel, EnvMaterializeKit_getInkWizardLegendLines, EnvMaterializeKit_InkTargetChoiceLabels, EnvMaterializeKit_resolveInkProfileDiscoveryRoot, EnvMaterializeKit_resolveNextInkWizardStep, EnvMaterializeKit_resolvePreviousInkWizardStep, EnvMaterializeKit_targetChoiceSelectedIndex, } from "./ink-wizard-model.js";
 import { EnvMaterializeKit_startInkCliTaskProcess, } from "./ui-launcher.js";
@@ -251,11 +251,11 @@ function routeWizardKeyboard(ctx, advancedFields) {
 }
 /** Renders the materialize mode list with the current selection highlighted. */
 function StepMode({ modeIndex, modes, }) {
-    return (_jsxs(Box, { flexDirection: "column", children: [_jsx(Text, { bold: true, children: "Mode" }), modes.map((mode, index) => (_jsxs(Text, { color: index === modeIndex ? "cyan" : undefined, children: [index === modeIndex ? "> " : "  ", mode] }, mode)))] }));
+    return (_jsxs(Box, { flexDirection: "column", children: [_jsx(Text, { bold: true, children: "Mode" }), modes.map((mode, index) => (_jsxs(Text, { ...(index === modeIndex ? { color: "cyan" } : {}), children: [index === modeIndex ? "> " : "  ", mode] }, mode)))] }));
 }
 /** Renders a titled vertical list selector with the active row highlighted. */
 function StepSelect({ labels, selectedIndex, title, }) {
-    return (_jsxs(Box, { flexDirection: "column", children: [_jsx(Text, { bold: true, children: title }), labels.map((label, index) => (_jsxs(Text, { color: index === selectedIndex ? "cyan" : undefined, children: [index === selectedIndex ? "> " : "  ", label] }, label)))] }));
+    return (_jsxs(Box, { flexDirection: "column", children: [_jsx(Text, { bold: true, children: title }), labels.map((label, index) => (_jsxs(Text, { ...(index === selectedIndex ? { color: "cyan" } : {}), children: [index === selectedIndex ? "> " : "  ", label] }, label)))] }));
 }
 /** Renders a titled read-only text field preview with a short gray description line. */
 function StepText({ description, title, value, }) {
@@ -388,6 +388,10 @@ export function EnvMaterializeKitInkApp({ advancedFields, appName, behavior, des
             });
             setRunCancel(null);
             setStep("result");
+        }, () => {
+            setSessionDone({ status: "failed", exitCode: null });
+            setRunCancel(null);
+            setStep("result");
         });
         return () => {
             task.cancel();
@@ -449,7 +453,7 @@ export function EnvMaterializeKitInkApp({ advancedFields, appName, behavior, des
     });
     const advancedField = advancedFields[advancedFieldIndex];
     const activePathField = findPathField({ fields: pathFields, step });
-    return (_jsxs(Box, { flexDirection: "column", children: [_jsx(InkScreenHeader, { appName: appName, description: description, summary: _jsxs(Text, { children: ["Step: ", step] }) }), step === "mode" ? (_jsx(StepMode, { modeIndex: modeIndex, modes: modes })) : null, activePathField ? (_jsx(StepText, { title: activePathField.label, description: activePathField.description ?? "Edit this value.", value: activePathField.readValue(model) })) : null, step === "logicalEnv" ? (_jsx(StepSelect, { title: "Logical environment", labels: logicalEnvironmentIds, selectedIndex: logicalEnvIndex })) : null, step === "targets" ? (_jsx(StepSelect, { title: "Targets", labels: EnvMaterializeKit_InkTargetChoiceLabels, selectedIndex: targetsIndex })) : null, step === "machineProfile" ? (_jsx(StepSelect, { title: `Machine profile (under ${privateNotesResolved})`, labels: machineProfileLabels, selectedIndex: machineProfileIndex })) : null, step === "advanced" && advancedField ? (_jsxs(Box, { flexDirection: "column", children: [_jsx(Text, { bold: true, children: "Optional overrides (Up/Down field, type to edit)" }), advancedFields.map((field, index) => (_jsxs(Text, { color: index === advancedFieldIndex ? "cyan" : undefined, children: [index === advancedFieldIndex ? "> " : "  ", field.label, ":", " ", field.readValue(model).length > 0
+    return (_jsxs(Box, { flexDirection: "column", children: [_jsx(InkScreenHeader, { appName: appName, description: description, summary: _jsxs(Text, { children: ["Step: ", step] }) }), step === "mode" ? (_jsx(StepMode, { modeIndex: modeIndex, modes: modes })) : null, activePathField ? (_jsx(StepText, { title: activePathField.label, description: activePathField.description ?? "Edit this value.", value: activePathField.readValue(model) })) : null, step === "logicalEnv" ? (_jsx(StepSelect, { title: "Logical environment", labels: logicalEnvironmentIds, selectedIndex: logicalEnvIndex })) : null, step === "targets" ? (_jsx(StepSelect, { title: "Targets", labels: EnvMaterializeKit_InkTargetChoiceLabels, selectedIndex: targetsIndex })) : null, step === "machineProfile" ? (_jsx(StepSelect, { title: `Machine profile (under ${privateNotesResolved})`, labels: machineProfileLabels, selectedIndex: machineProfileIndex })) : null, step === "advanced" && advancedField ? (_jsxs(Box, { flexDirection: "column", children: [_jsx(Text, { bold: true, children: "Optional overrides (Up/Down field, type to edit)" }), advancedFields.map((field, index) => (_jsxs(Text, { ...(index === advancedFieldIndex ? { color: "cyan" } : {}), children: [index === advancedFieldIndex ? "> " : "  ", field.label, ":", " ", field.readValue(model).length > 0
                                 ? field.readValue(model)
                                 : "(empty)"] }, field.id)))] })) : null, step === "review" ? (_jsxs(Box, { flexDirection: "column", children: [buildError ? (_jsxs(Text, { color: "red", children: ["Fix options: ", buildError] })) : (_jsx(InkCommandPreview, { commandLine: commandLine })), renderPreflightReviewSection({
                         cliOptions,
@@ -460,4 +464,3 @@ export function EnvMaterializeKitInkApp({ advancedFields, appName, behavior, des
                                 ? ""
                                 : ` (exit ${String(sessionDone.exitCode)})`] }), _jsx(InkCapturedOutputBlock, { title: "Captured output", lines: sessionLines, maxLines: 24, bracketSource: true })] })) : null, _jsx(InkLegend, { lines: EnvMaterializeKit_getInkWizardLegendLines({ buildError, step }) })] }));
 }
-//# sourceMappingURL=ink-app.js.map

@@ -31,7 +31,7 @@ import {
   EnvMaterializeKit_withTemporaryProcessEnv,
 } from "./workspace-values.js";
 
-test("EnvMaterializeKit_readOptionalTrimmedTextFile handles missing and blank files", () => {
+void test("EnvMaterializeKit_readOptionalTrimmedTextFile handles missing and blank files", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "env-materialize-values-"));
   try {
     const filePath = path.join(tempDir, "value.txt");
@@ -48,7 +48,7 @@ test("EnvMaterializeKit_readOptionalTrimmedTextFile handles missing and blank fi
   }
 });
 
-test("EnvMaterializeKit_readOptionalNestedJsonScalar follows object fields", () => {
+void test("EnvMaterializeKit_readOptionalNestedJsonScalar follows object fields", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "env-materialize-json-"));
   try {
     const filePath = path.join(tempDir, "metadata.json");
@@ -87,7 +87,7 @@ test("EnvMaterializeKit_readOptionalNestedJsonScalar follows object fields", () 
   }
 });
 
-test("EnvMaterializeKit scalar resolvers keep historical precedence", () => {
+void test("EnvMaterializeKit scalar resolvers keep historical precedence", () => {
   assert.equal(
     EnvMaterializeKit_resolveFirstNonEmptyString({
       defaultValue: "fallback",
@@ -111,7 +111,7 @@ test("EnvMaterializeKit scalar resolvers keep historical precedence", () => {
   );
 });
 
-test("EnvMaterializeKit_resolveMappedFallbackValue resolves direct before mapped fallback", () => {
+void test("EnvMaterializeKit_resolveMappedFallbackValue resolves direct before mapped fallback", () => {
   assert.equal(
     EnvMaterializeKit_resolveMappedFallbackValue({
       directSources: [new Map([["LOCAL_KEY", " direct "]])],
@@ -141,7 +141,7 @@ test("EnvMaterializeKit_resolveMappedFallbackValue resolves direct before mapped
   );
 });
 
-test("EnvMaterializeKit_removeTrailingPathSegment strips only exact trailing segment", () => {
+void test("EnvMaterializeKit_removeTrailingPathSegment strips only exact trailing segment", () => {
   assert.equal(
     EnvMaterializeKit_removeTrailingPathSegment({
       candidatePath: "/tmp/root/generated",
@@ -158,7 +158,7 @@ test("EnvMaterializeKit_removeTrailingPathSegment strips only exact trailing seg
   );
 });
 
-test("EnvMaterializeKit_withTemporaryProcessEnv restores process env after callback", () => {
+void test("EnvMaterializeKit_withTemporaryProcessEnv restores process env after callback", () => {
   const originalValue = process.env.ENV_MATERIALIZE_KIT_TEST_VALUE;
   process.env.ENV_MATERIALIZE_KIT_TEST_VALUE = "original";
 

@@ -50,7 +50,7 @@ function formatResultLines(results: readonly TestMutationResult[]): readonly str
   return results.map((result) => `${result.status}:${result.filePath}`);
 }
 
-test("EnvMaterializeKit_runCli prints usage for help without running", () => {
+void test("EnvMaterializeKit_runCli prints usage for help without running", () => {
   const lines: string[] = [];
   let runCount = 0;
 
@@ -72,7 +72,7 @@ test("EnvMaterializeKit_runCli prints usage for help without running", () => {
   assert.deepEqual(lines, ["Usage: env-materialize"]);
 });
 
-test("EnvMaterializeKit_runCli prints results and succeeds for non-check runs", () => {
+void test("EnvMaterializeKit_runCli prints results and succeeds for non-check runs", () => {
   const lines: string[] = [];
   const exitCode = EnvMaterializeKit_runCli({
     argv: [],
@@ -90,7 +90,7 @@ test("EnvMaterializeKit_runCli prints results and succeeds for non-check runs", 
   assert.deepEqual(lines, ["updated:/repo/.env"]);
 });
 
-test("EnvMaterializeKit_runCli fails check mode on drift or missing targets", () => {
+void test("EnvMaterializeKit_runCli fails check mode on drift or missing targets", () => {
   const exitCode = EnvMaterializeKit_runCli({
     argv: ["--check"],
     currentWorkingDirectory: "/repo",

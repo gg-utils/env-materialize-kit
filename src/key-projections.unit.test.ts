@@ -28,7 +28,7 @@ import {
   EnvMaterializeKit_resolveProjectedMapValue,
 } from "./key-projections.js";
 
-test("EnvMaterializeKit_buildValueMap applies only present non-empty entries", () => {
+void test("EnvMaterializeKit_buildValueMap applies only present non-empty entries", () => {
   assert.deepEqual(
     [...EnvMaterializeKit_buildValueMap({
       entries: [
@@ -41,7 +41,7 @@ test("EnvMaterializeKit_buildValueMap applies only present non-empty entries", (
   );
 });
 
-test("EnvMaterializeKit_applyMapValueProjections maps non-empty source values", () => {
+void test("EnvMaterializeKit_applyMapValueProjections maps non-empty source values", () => {
   const valuesByKey = new Map<string, string>([["EXISTING", "kept"]]);
   EnvMaterializeKit_applyMapValueProjections({
     projections: [
@@ -61,7 +61,7 @@ test("EnvMaterializeKit_applyMapValueProjections maps non-empty source values", 
   ]);
 });
 
-test("EnvMaterializeKit_applyConditionalMapValueProjections writes matching cases", () => {
+void test("EnvMaterializeKit_applyConditionalMapValueProjections writes matching cases", () => {
   const valuesByKey = new Map<string, string>();
   EnvMaterializeKit_applyConditionalMapValueProjections({
     projections: [
@@ -80,7 +80,7 @@ test("EnvMaterializeKit_applyConditionalMapValueProjections writes matching case
   assert.deepEqual([...valuesByKey.entries()], [["FLAG_ENABLED", "0"]]);
 });
 
-test("EnvMaterializeKit resolved projections use first non-empty source map value", () => {
+void test("EnvMaterializeKit resolved projections use first non-empty source map value", () => {
   assert.equal(
     EnvMaterializeKit_resolveProjectedMapValue({
       key: "A",
@@ -108,7 +108,7 @@ test("EnvMaterializeKit resolved projections use first non-empty source map valu
   ]);
 });
 
-test("EnvMaterializeKit_applyValueEntries mutates an existing map", () => {
+void test("EnvMaterializeKit_applyValueEntries mutates an existing map", () => {
   const valuesByKey = new Map<string, string>([["A", "old"]]);
   EnvMaterializeKit_applyValueEntries({
     entries: [
@@ -124,7 +124,7 @@ test("EnvMaterializeKit_applyValueEntries mutates an existing map", () => {
   ]);
 });
 
-test("EnvMaterializeKit_collectMapValues collects configured keys with later maps winning", () => {
+void test("EnvMaterializeKit_collectMapValues collects configured keys with later maps winning", () => {
   assert.deepEqual(
     [
       ...EnvMaterializeKit_collectMapValues({

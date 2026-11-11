@@ -230,7 +230,7 @@ export function EnvMaterializeKit_parseCliArgs<
         continue;
       case "--targets":
         targets = EnvMaterializeKit_parseCliTargets({
-          allTargetsToken: options.allTargetsToken,
+          ...(options.allTargetsToken === undefined ? {} : { allTargetsToken: options.allTargetsToken }),
           defaultTargets: options.defaultTargets,
           isTarget: options.isTarget,
           rawValue: value,

@@ -88,9 +88,9 @@ class FakeSession implements EnvMaterializeKit_InteractiveMenuSession {
     this.lines.push(`success:${text}`);
   }
 
-  async promptReadLine(promptText: string): Promise<string> {
+  promptReadLine(promptText: string): Promise<string> {
     this.lines.push(`prompt:${promptText}`);
-    return this.answers.shift() ?? "2";
+    return Promise.resolve(this.answers.shift() ?? "2");
   }
 
   writeLine(text = ""): void {
@@ -98,7 +98,7 @@ class FakeSession implements EnvMaterializeKit_InteractiveMenuSession {
   }
 }
 
-test("EnvMaterializeKit_printInteractiveMenu renders configured rows", () => {
+void test("EnvMaterializeKit_printInteractiveMenu renders configured rows", () => {
   const session = new FakeSession();
 
   EnvMaterializeKit_printInteractiveMenu({ config, session });
@@ -115,7 +115,7 @@ test("EnvMaterializeKit_printInteractiveMenu renders configured rows", () => {
   ]);
 });
 
-test(
+void test(
   "EnvMaterializeKit_handleInteractiveMenuSelection runs scripts and rejects unknown keys",
   async () => {
     const session = new FakeSession();
@@ -126,8 +126,9 @@ test(
         action: "1",
         config,
         cwd: "/repo",
-        runScript: async (options) => {
+        runScript: (options) => {
           runs.push(`${options.cwd}:${options.scriptName}`);
+          return Promise.resolve();
         },
         session,
       }),
@@ -139,7 +140,7 @@ test(
         action: "unknown",
         config,
         cwd: "/repo",
-        runScript: async () => undefined,
+        runScript: () => Promise.resolve(),
         session,
       }),
       "continue",
@@ -150,15 +151,16 @@ test(
   },
 );
 
-test("EnvMaterializeKit_runInteractiveMenu loops until exit", async () => {
+void test("EnvMaterializeKit_runInteractiveMenu loops until exit", async () => {
   const session = new FakeSession(["1", "2"]);
   const runs: string[] = [];
 
   await EnvMaterializeKit_runInteractiveMenu({
     config,
     cwd: "/repo",
-    runScript: async (options) => {
+    runScript: (options) => {
       runs.push(options.scriptName);
+      return Promise.resolve();
     },
     session,
   });

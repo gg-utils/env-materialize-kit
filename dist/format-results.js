@@ -18,4 +18,3 @@ export function EnvMaterializeKit_formatResultLines(results) {
 export function EnvMaterializeKit_formatResultsStdout(results) {
     return EnvMaterializeKit_formatResultLines(results).join("\n");
 }
-//# sourceMappingURL=format-results.js.map

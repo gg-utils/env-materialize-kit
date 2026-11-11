@@ -59,4 +59,3 @@ export type EnvMaterializeKit_InkAppProps<FormModel, CliOptions> = {
 };
 /** Open root for a config-driven env-materialize Ink workflow. */
 export declare function EnvMaterializeKitInkApp<FormModel, CliOptions>({ advancedFields, appName, behavior, description, logicalEnvironmentIds, modes, pathFields, projectRoot, runCommand, }: EnvMaterializeKit_InkAppProps<FormModel, CliOptions>): React.ReactNode;
-//# sourceMappingURL=ink-app.d.ts.map

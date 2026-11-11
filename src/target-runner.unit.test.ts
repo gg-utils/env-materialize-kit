@@ -16,7 +16,7 @@ import test from "node:test";
 
 import { EnvMaterializeKit_runTargetFiles } from "./target-runner.js";
 
-test("EnvMaterializeKit_runTargetFiles renders and writes targets in resolved order", () => {
+void test("EnvMaterializeKit_runTargetFiles renders and writes targets in resolved order", () => {
   const calls: string[] = [];
 
   const result = EnvMaterializeKit_runTargetFiles({

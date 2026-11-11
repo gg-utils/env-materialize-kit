@@ -1,3 +1,4 @@
+/** @jsxImportSource #opentui */
 /**
  * @fileoverview Reusable OpenTUI renderer for config-driven env materialization wizards.
  *
@@ -99,7 +100,7 @@ function renderTextFields<
         onChange={(value) => {
           options.setModel((current) => field.writeValue(current, value));
         }}
-        placeholder={field.placeholder}
+        {...(field.placeholder === undefined ? {} : { placeholder: field.placeholder })}
         value={field.readValue(options.model)}
       />
     </box>

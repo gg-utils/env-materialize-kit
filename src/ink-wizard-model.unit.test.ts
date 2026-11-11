@@ -31,7 +31,7 @@ import {
   EnvMaterializeKit_targetChoiceSelectedIndex,
 } from "./ink-wizard-model.js";
 
-test("Ink wizard model resolves profile discovery roots", () => {
+void test("Ink wizard model resolves profile discovery roots", () => {
   assert.equal(
     EnvMaterializeKit_resolveInkProfileDiscoveryRoot({
       fallbackRoot: "/fallback",
@@ -58,7 +58,7 @@ test("Ink wizard model resolves profile discovery roots", () => {
   );
 });
 
-test("Ink wizard model computes selected indexes", () => {
+void test("Ink wizard model computes selected indexes", () => {
   assert.equal(
     EnvMaterializeKit_findSelectedValueIndex({
       selectedValue: "second",
@@ -91,7 +91,7 @@ test("Ink wizard model computes selected indexes", () => {
   );
 });
 
-test("Ink wizard model maps target choices and labels", () => {
+void test("Ink wizard model maps target choices and labels", () => {
   assert.deepEqual(EnvMaterializeKit_InkTargetChoiceLabels, [
     "all (local-edge + packages)",
     "local-edge only",
@@ -113,7 +113,7 @@ test("Ink wizard model maps target choices and labels", () => {
   );
 });
 
-test("Ink wizard model formats mutation and result labels", () => {
+void test("Ink wizard model formats mutation and result labels", () => {
   assert.deepEqual(
     EnvMaterializeKit_formatInkMutationRunSummaryLines([
       { filePath: "/tmp/a.env", status: "unchanged" },
@@ -138,7 +138,7 @@ test("Ink wizard model formats mutation and result labels", () => {
   );
 });
 
-test("Ink wizard model resolves legend lines", () => {
+void test("Ink wizard model resolves legend lines", () => {
   assert.deepEqual(
     EnvMaterializeKit_getInkWizardLegendLines({
       buildError: null,
@@ -168,7 +168,7 @@ test("Ink wizard model resolves legend lines", () => {
   );
 });
 
-test("Ink wizard model resolves next and previous steps", () => {
+void test("Ink wizard model resolves next and previous steps", () => {
   assert.equal(
     EnvMaterializeKit_resolvePreviousInkWizardStep({
       currentStep: "workspace",

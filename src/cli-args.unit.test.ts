@@ -82,7 +82,7 @@ function parseTestArgs(argv: readonly string[]) {
   });
 }
 
-test("EnvMaterializeKit_parseCliArgs parses standard and additional options", () => {
+void test("EnvMaterializeKit_parseCliArgs parses standard and additional options", () => {
   const result = parseTestArgs([
     "--workspace",
     "../app",
@@ -120,7 +120,7 @@ test("EnvMaterializeKit_parseCliArgs parses standard and additional options", ()
   assert.equal(result.options.positiveIntegerOptionValuesByKey.get("port"), 4011);
 });
 
-test("EnvMaterializeKit_parseCliArgs returns help only for unconsumed help flags", () => {
+void test("EnvMaterializeKit_parseCliArgs returns help only for unconsumed help flags", () => {
   assert.deepEqual(parseTestArgs(["--help"]), { kind: "help" });
 
   const result = parseTestArgs([
@@ -137,7 +137,7 @@ test("EnvMaterializeKit_parseCliArgs returns help only for unconsumed help flags
   assert.equal(result.options.stringOptionValuesByKey.get("machineProfile"), "--help");
 });
 
-test("EnvMaterializeKit_parseCliArgs rejects unsupported literals and numeric values", () => {
+void test("EnvMaterializeKit_parseCliArgs rejects unsupported literals and numeric values", () => {
   assert.throws(
     () => parseTestArgs(["--logical-environment", "unknown"]),
     /--logical-environment must be one of: local, development/u,
@@ -160,7 +160,7 @@ test("EnvMaterializeKit_parseCliArgs rejects unsupported literals and numeric va
   );
 });
 
-test("EnvMaterializeKit_parseCliTargets keeps all-token behavior compatible", () => {
+void test("EnvMaterializeKit_parseCliTargets keeps all-token behavior compatible", () => {
   assert.deepEqual(
     EnvMaterializeKit_parseCliTargets({
       defaultTargets: targets,
@@ -179,7 +179,7 @@ test("EnvMaterializeKit_parseCliTargets keeps all-token behavior compatible", ()
   );
 });
 
-test(
+void test(
   "EnvMaterializeKit_serializeCliOptionsToArgv serializes additional flags in definition order",
   () => {
     const argv = EnvMaterializeKit_serializeCliOptionsToArgv({
@@ -215,7 +215,7 @@ test(
   },
 );
 
-test("EnvMaterializeKit_collectCliAdditionalOptionValueMaps filters configured values", () => {
+void test("EnvMaterializeKit_collectCliAdditionalOptionValueMaps filters configured values", () => {
   const valueMaps = EnvMaterializeKit_collectCliAdditionalOptionValueMaps({
     additionalOptions,
     positiveIntegerOptionValuesByKey: new Map([["port", 4011]]),

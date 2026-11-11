@@ -1,3 +1,4 @@
+/** @jsxImportSource #opentui */
 /**
  * @fileoverview Reusable OpenTUI renderer for config-driven env materialization wizards.
  *
@@ -51,5 +52,4 @@ export type EnvMaterializeKit_OpenTuiAppProps<FormModel extends EnvMaterializeKi
     workspaceFields: readonly EnvMaterializeKit_OpenTuiTextFieldConfig<FormModel>[];
 };
 /** OpenTUI application root for a config-driven env-materialize workflow. */
-export declare function EnvMaterializeKitOpenTuiApp<FormModel extends EnvMaterializeKit_OpenTuiFormModel, CliOptions>({ advancedFields, behavior, cliScriptRelativePath, cwd, logicalEnvironmentIds, modes, repoRoot, workspaceFields, }: EnvMaterializeKit_OpenTuiAppProps<FormModel, CliOptions>): import("react/jsx-runtime").JSX.Element;
-//# sourceMappingURL=opentui-app.d.ts.map
+export declare function EnvMaterializeKitOpenTuiApp<FormModel extends EnvMaterializeKit_OpenTuiFormModel, CliOptions>({ advancedFields, behavior, cliScriptRelativePath, cwd, logicalEnvironmentIds, modes, repoRoot, workspaceFields, }: EnvMaterializeKit_OpenTuiAppProps<FormModel, CliOptions>): import("#opentui/jsx-runtime").JSX.Element;
