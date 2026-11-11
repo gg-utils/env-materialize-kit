@@ -10,7 +10,7 @@ and command names belong in the consuming adapter.
 ## Install
 
 ```bash
-npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.2.0
+npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.0
 ```
 
 Package JSON form:
@@ -18,7 +18,7 @@ Package JSON form:
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#3ccfa96"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.0"
   }
 }
 ```
@@ -138,16 +138,16 @@ Requires Node `>=22.0.0 <27`. Built ESM JavaScript and declarations are included
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.2.0"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.0"
   }
 }
 ```
 
-The kit pins its core to `env-materialize-core#v0.2.0`. React and Ink are runtime dependencies for the exported UI components.
+The kit pins its core to `env-materialize-core#v0.3.0`. React and Ink are runtime dependencies for the exported UI components.
 
 ### Read-only file check API
 
-There is no key-name presence/missing report and no standalone CLI binary. Existing check mode compares whole file content, including values and formatting, without writing files or returning values. A consumer can invoke it directly:
+Existing check mode compares whole file content, including values and formatting, without writing files or returning values. A consumer can invoke it directly:
 
 ```js
 import { EnvMaterializeKit_writeTargetFile } from "@gg-utils/env-materialize-kit/write-target-file";
@@ -176,3 +176,28 @@ The generic parser supports `--mode check` when the consuming adapter's `isMode`
 it also requires `--logical-environment <id>` and project-provided validators/defaults.
 `EnvMaterializeKit_runCli` returns 1 for missing/drift results in check mode, otherwise 0 (including help),
 and propagates parser/runner errors. Inject the package formatter to keep its output value-free.
+
+### Key-name coverage (v0.3.0)
+
+```sh
+env-materialize-check-keys --template <path> --target <path> [--optional NAME ...] [--json]
+```
+
+Exit 0 means all required names exist, 1 means missing names or an absent target, and 2
+means usage or I/O errors. Extras are informational. Output contains names only; errors
+do not echo paths, arguments, values or underlying errors. No files are written.
+
+```js
+import { checkKeys } from "@gg-utils/env-materialize-kit/check-keys";
+const result = checkKeys(templatePath, targetPath, {
+  optional: ["OPTIONAL_KEY"],
+  ignoreExtra: ["LOCAL_ONLY", /^DEBUG_/],
+});
+```
+
+Returns `{ targetExists, missing, extra, present }` with sorted unique names. Optional names
+are excluded from missing; ignoreExtra accepts exact names or regular expressions.
+The core scanner consumes one byte at a time without constructing value strings. It handles
+export, comments, blank lines, CRLF, quoted multiline values and escaped double quotes.
+Invalid rows are ignored; an unterminated quote consumes the remainder. This checks presence
+only, including empty assignments, and does not validate value correctness.
