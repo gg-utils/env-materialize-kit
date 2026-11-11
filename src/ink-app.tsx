@@ -535,7 +535,7 @@ function StepMode({
     <Box flexDirection="column">
       <Text bold>Mode</Text>
       {modes.map((mode, index) => (
-        <Text key={mode} color={index === modeIndex ? "cyan" : undefined}>
+        <Text key={mode} {...(index === modeIndex ? { color: "cyan" } : {})}>
           {index === modeIndex ? "> " : "  "}
           {mode}
         </Text>
@@ -558,7 +558,7 @@ function StepSelect({
     <Box flexDirection="column">
       <Text bold>{title}</Text>
       {labels.map((label, index) => (
-        <Text key={label} color={index === selectedIndex ? "cyan" : undefined}>
+        <Text key={label} {...(index === selectedIndex ? { color: "cyan" } : {})}>
           {index === selectedIndex ? "> " : "  "}
           {label}
         </Text>
@@ -791,6 +791,10 @@ export function EnvMaterializeKitInkApp<FormModel, CliOptions>({
       });
       setRunCancel(null);
       setStep("result");
+    }, () => {
+      setSessionDone({ status: "failed", exitCode: null });
+      setRunCancel(null);
+      setStep("result");
     });
 
     return () => {
@@ -906,7 +910,7 @@ export function EnvMaterializeKitInkApp<FormModel, CliOptions>({
           {advancedFields.map((field, index) => (
             <Text
               key={field.id}
-              color={index === advancedFieldIndex ? "cyan" : undefined}
+              {...(index === advancedFieldIndex ? { color: "cyan" } : {})}
             >
               {index === advancedFieldIndex ? "> " : "  "}
               {field.label}:{" "}

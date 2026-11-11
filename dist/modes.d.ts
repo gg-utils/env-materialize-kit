@@ -22,4 +22,3 @@ export type EnvMaterializeKit_Target = (typeof EnvMaterializeKit_targets)[number
 export declare function EnvMaterializeKit_isMode(value: string): value is EnvMaterializeKit_Mode;
 /** Returns true when a string is a known materialization target group. */
 export declare function EnvMaterializeKit_isTarget(value: string): value is EnvMaterializeKit_Target;
-//# sourceMappingURL=modes.d.ts.map

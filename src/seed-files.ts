@@ -141,7 +141,7 @@ export function EnvMaterializeKit_loadSeedFiles<ScopedPackageId extends string>(
   const machineProfile = EnvMaterializeKit_resolveMachineProfile({
     developerSlugKey: options.developerSlugKey,
     existingValues: options.existingValues,
-    explicitMachineProfile: options.explicitMachineProfile,
+    ...(options.explicitMachineProfile === undefined ? {} : { explicitMachineProfile: options.explicitMachineProfile }),
     machineProfileNames: EnvMaterializeKit_listMachineProfileNames({
       machineOverridesDirPath: options.machineOverridesDirPath,
     }),

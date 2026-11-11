@@ -29,4 +29,3 @@ export function EnvMaterializeKit_isMode(value) {
 export function EnvMaterializeKit_isTarget(value) {
     return EnvMaterializeKit_targetSet.has(value);
 }
-//# sourceMappingURL=modes.js.map

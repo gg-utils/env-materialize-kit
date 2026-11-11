@@ -46,4 +46,3 @@ export type EnvMaterializeKit_RunCliOptions<CliOptions extends EnvMaterializeKit
 export declare function EnvMaterializeKit_isCheckModeFailureResult(result: EnvMaterializeKit_TargetMutationResult): boolean;
 /** Runs a config-bound env-materialize CLI and returns the desired process exit code. */
 export declare function EnvMaterializeKit_runCli<CliOptions extends EnvMaterializeKit_RunnableCliOptions, MutationResult extends EnvMaterializeKit_TargetMutationResult>(options: EnvMaterializeKit_RunCliOptions<CliOptions, MutationResult>): number;
-//# sourceMappingURL=cli-runner.d.ts.map

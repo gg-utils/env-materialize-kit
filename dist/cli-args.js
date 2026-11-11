@@ -86,7 +86,7 @@ export function EnvMaterializeKit_parseCliArgs(options) {
                 continue;
             case "--targets":
                 targets = EnvMaterializeKit_parseCliTargets({
-                    allTargetsToken: options.allTargetsToken,
+                    ...(options.allTargetsToken === undefined ? {} : { allTargetsToken: options.allTargetsToken }),
                     defaultTargets: options.defaultTargets,
                     isTarget: options.isTarget,
                     rawValue: value,
@@ -212,4 +212,3 @@ function EnvMaterializeKit_isDefaultTargetSelection(options) {
     return (options.targets.length === options.defaultTargets.length &&
         options.defaultTargets.every((target) => options.targets.includes(target)));
 }
-//# sourceMappingURL=cli-args.js.map

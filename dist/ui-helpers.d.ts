@@ -54,4 +54,3 @@ export declare function EnvMaterializeKit_resolveOptionalPathField(options: {
 }): string | undefined;
 /** Formats write results into stable summary lines for CLI and preview screens. */
 export declare function EnvMaterializeKit_formatMutationSummaryLines(results: readonly EnvMaterializeKit_MutationSummaryInput[]): string[];
-//# sourceMappingURL=ui-helpers.d.ts.map

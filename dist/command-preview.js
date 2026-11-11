@@ -24,4 +24,3 @@ export function EnvMaterializeKit_formatCommandPreview(options) {
         ...options.argv.map(EnvMaterializeKit_shellQuote),
     ].join(" ");
 }
-//# sourceMappingURL=command-preview.js.map

@@ -37,7 +37,7 @@ import {
   EnvMaterializeKit_writeTargetFile,
 } from "./index.js";
 
-test("EnvMaterializeKit_resolveTargetFiles resolves selected groups in stable order", () => {
+void test("EnvMaterializeKit_resolveTargetFiles resolves selected groups in stable order", () => {
   const resolvedTargets = EnvMaterializeKit_resolveTargetFiles({
     fileExists: (filePath) => !filePath.includes("optional"),
     localEdgeReferenceFilePath: "/repo/scripts/local-edge/.env.example",
@@ -70,7 +70,7 @@ test("EnvMaterializeKit_resolveTargetFiles resolves selected groups in stable or
   ]);
 });
 
-test("EnvMaterializeKit_resolveTargetFiles errors on missing required references", () => {
+void test("EnvMaterializeKit_resolveTargetFiles errors on missing required references", () => {
   assert.throws(
     () =>
       EnvMaterializeKit_resolveTargetFiles({
@@ -86,14 +86,14 @@ test("EnvMaterializeKit_resolveTargetFiles errors on missing required references
   );
 });
 
-test("EnvMaterializeKit mode and target guards identify known literals", () => {
+void test("EnvMaterializeKit mode and target guards identify known literals", () => {
   assert.equal(EnvMaterializeKit_isMode("check"), true);
   assert.equal(EnvMaterializeKit_isMode("unknown"), false);
   assert.equal(EnvMaterializeKit_isTarget("packages"), true);
   assert.equal(EnvMaterializeKit_isTarget("unknown"), false);
 });
 
-test("EnvMaterializeKit_writeTargetFile applies explicit sync policy", () => {
+void test("EnvMaterializeKit_writeTargetFile applies explicit sync policy", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "env-materialize-kit-"));
   try {
     const targetFilePath = path.join(tempDir, ".env");
@@ -136,7 +136,7 @@ test("EnvMaterializeKit_writeTargetFile applies explicit sync policy", () => {
   }
 });
 
-test("EnvMaterializeKit_formatResultLines renders stable CLI lines", () => {
+void test("EnvMaterializeKit_formatResultLines renders stable CLI lines", () => {
   assert.deepEqual(
     EnvMaterializeKit_formatResultLines([
       { changed: false, filePath: "/tmp/.env", status: "unchanged" },
@@ -145,7 +145,7 @@ test("EnvMaterializeKit_formatResultLines renders stable CLI lines", () => {
   );
 });
 
-test("EnvMaterializeKit seed helpers read optional env files and select profiles", () => {
+void test("EnvMaterializeKit seed helpers read optional env files and select profiles", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "env-materialize-kit-seeds-"));
   try {
     const machineOverridesDirPath = path.join(tempDir, "machine-overrides");
@@ -194,7 +194,7 @@ test("EnvMaterializeKit seed helpers read optional env files and select profiles
   }
 });
 
-test("EnvMaterializeKit_loadSeedFiles loads required and optional seed maps", () => {
+void test("EnvMaterializeKit_loadSeedFiles loads required and optional seed maps", () => {
   const tempDir = fs.mkdtempSync(
     path.join(os.tmpdir(), "env-materialize-kit-seed-load-"),
   );

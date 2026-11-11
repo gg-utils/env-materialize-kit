@@ -26,7 +26,7 @@ import {
   EnvMaterializeKit_targetsFromChoice,
 } from "./ui-helpers.js";
 
-test("EnvMaterializeKit_targetsFromChoice expands all to configured defaults", () => {
+void test("EnvMaterializeKit_targetsFromChoice expands all to configured defaults", () => {
   assert.deepEqual(
     EnvMaterializeKit_targetsFromChoice({
       choice: "all",
@@ -43,7 +43,7 @@ test("EnvMaterializeKit_targetsFromChoice expands all to configured defaults", (
   );
 });
 
-test("EnvMaterializeKit_parseOptionalPositiveIntegerField handles blanks and errors", () => {
+void test("EnvMaterializeKit_parseOptionalPositiveIntegerField handles blanks and errors", () => {
   assert.equal(
     EnvMaterializeKit_parseOptionalPositiveIntegerField({
       label: "Port",
@@ -68,7 +68,7 @@ test("EnvMaterializeKit_parseOptionalPositiveIntegerField handles blanks and err
   );
 });
 
-test("EnvMaterializeKit optional field resolvers trim strings and resolve paths", () => {
+void test("EnvMaterializeKit optional field resolvers trim strings and resolve paths", () => {
   assert.equal(EnvMaterializeKit_resolveOptionalTrimmedStringField(" x "), "x");
   assert.equal(EnvMaterializeKit_resolveOptionalTrimmedStringField(" "), undefined);
   assert.equal(
@@ -87,7 +87,7 @@ test("EnvMaterializeKit optional field resolvers trim strings and resolve paths"
   );
 });
 
-test("EnvMaterializeKit_formatMutationSummaryLines groups statuses in stable order", () => {
+void test("EnvMaterializeKit_formatMutationSummaryLines groups statuses in stable order", () => {
   assert.deepEqual(
     EnvMaterializeKit_formatMutationSummaryLines([
       { changed: true, filePath: "/a", status: "written" },

@@ -60,7 +60,7 @@ export function EnvMaterializeKit_loadSeedFiles(options) {
     const machineProfile = EnvMaterializeKit_resolveMachineProfile({
         developerSlugKey: options.developerSlugKey,
         existingValues: options.existingValues,
-        explicitMachineProfile: options.explicitMachineProfile,
+        ...(options.explicitMachineProfile === undefined ? {} : { explicitMachineProfile: options.explicitMachineProfile }),
         machineProfileNames: EnvMaterializeKit_listMachineProfileNames({
             machineOverridesDirPath: options.machineOverridesDirPath,
         }),
@@ -85,4 +85,3 @@ export function EnvMaterializeKit_loadSeedFiles(options) {
         }),
     };
 }
-//# sourceMappingURL=seed-files.js.map

@@ -1,1 +1,0 @@
-{"version":3,"file":"command-preview.d.ts","sourceRoot":"","sources":["../src/command-preview.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;GAWG;AAEH,qFAAqF;AACrF,wBAAgB,4BAA4B,CAAC,KAAK,EAAE,MAAM,GAAG,MAAM,CAMlE;AAED,wFAAwF;AACxF,wBAAgB,sCAAsC,CAAC,OAAO,EAAE;IAC9D,IAAI,EAAE,SAAS,MAAM,EAAE,CAAC;IACxB,aAAa,EAAE,SAAS,MAAM,EAAE,CAAC;CAClC,GAAG,MAAM,CAKT"}

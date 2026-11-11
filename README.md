@@ -10,7 +10,7 @@ and command names belong in the consuming adapter.
 ## Install
 
 ```bash
-npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#main
+npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.2.0
 ```
 
 Package JSON form:
@@ -108,8 +108,8 @@ npm test
 npm run build
 ```
 
-Scripts currently expect the extracted source-first workspace toolchain. Runtime consumers install
-the package from Git and consume the exported source paths.
+Use `npm ci` for exact-pinned local tools, `npm run lint` for zero-warning lint, and
+`npm run check:dist` to verify committed build output.
 
 ## Layout
 
@@ -130,3 +130,49 @@ the package from Git and consume the exported source paths.
 - The kit never decides which secrets or defaults are correct for a project.
 - Adapter code must inject target definitions, labels, file paths, and render callbacks.
 - UI components here are reusable shells; project copy and command names belong outside the package.
+
+## Use from another repository
+
+Requires Node `>=22.0.0 <27`. Built ESM JavaScript and declarations are included; no install scripts or consumer build step is needed.
+
+```json
+{
+  "dependencies": {
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.2.0"
+  }
+}
+```
+
+The kit pins its core to `env-materialize-core#v0.2.0`. React and Ink are runtime dependencies for the exported UI components.
+
+### Read-only file check API
+
+There is no key-name presence/missing report and no standalone CLI binary. Existing check mode compares whole file content, including values and formatting, without writing files or returning values. A consumer can invoke it directly:
+
+```js
+import { EnvMaterializeKit_writeTargetFile } from "@gg-utils/env-materialize-kit/write-target-file";
+import { EnvMaterializeKit_formatResultLines } from "@gg-utils/env-materialize-kit/format-results";
+import { EnvMaterializeKit_isCheckModeFailureResult } from "@gg-utils/env-materialize-kit/cli-runner";
+
+// Supply desiredContent from the consuming repository's own renderer.
+const result = EnvMaterializeKit_writeTargetFile({
+  desiredContent,
+  filePath: targetPath,
+  mode: "check",
+  referenceFilePath: referencePath,
+  syncPolicy: { managedUrlKeys: [], placeholderExactValues: [], placeholderSubstrings: [] },
+});
+for (const line of EnvMaterializeKit_formatResultLines([result])) console.log(line);
+process.exitCode = EnvMaterializeKit_isCheckModeFailureResult(result) ? 1 : 0;
+```
+
+Arguments: `desiredContent` is rendered env text, `filePath` is the target, and `mode` is `"check"`.
+`referenceFilePath` and `syncPolicy` are required by the shared options type but are unused in check mode.
+The returned object contains only `changed: false`, `filePath`, and `status` (`missing`, `drift`, or `unchanged`).
+The formatter prints only status and path. This example exits 0 for unchanged and 1 for missing/drift.
+I/O exceptions propagate; consumers own their error handling. The API itself returns an object, not an exit code.
+
+The generic parser supports `--mode check` when the consuming adapter's `isMode` accepts `check`;
+it also requires `--logical-environment <id>` and project-provided validators/defaults.
+`EnvMaterializeKit_runCli` returns 1 for missing/drift results in check mode, otherwise 0 (including help),
+and propagates parser/runner errors. Inject the package formatter to keep its output value-free.

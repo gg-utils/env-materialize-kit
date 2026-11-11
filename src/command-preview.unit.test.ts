@@ -22,13 +22,13 @@ import {
   EnvMaterializeKit_shellQuote,
 } from "./command-preview.js";
 
-test("EnvMaterializeKit_shellQuote quotes empty strings, spaces, and single quotes", () => {
+void test("EnvMaterializeKit_shellQuote quotes empty strings, spaces, and single quotes", () => {
   assert.equal(EnvMaterializeKit_shellQuote(""), "''");
   assert.equal(EnvMaterializeKit_shellQuote("/tmp/with space"), "'/tmp/with space'");
   assert.equal(EnvMaterializeKit_shellQuote("don't"), "'don'\\\\''t'");
 });
 
-test("EnvMaterializeKit_formatCommandPreview leaves the prefix literal and quotes argv", () => {
+void test("EnvMaterializeKit_formatCommandPreview leaves the prefix literal and quotes argv", () => {
   assert.equal(
     EnvMaterializeKit_formatCommandPreview({
       argv: ["--workspace", "/tmp/with space"],

@@ -1,115 +1,133 @@
 {
   "name": "@gg-utils/env-materialize-kit",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "description": "Reusable env materialization command and config primitives.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./cli-args": {
-      "types": "./src/cli-args.ts",
-      "default": "./src/cli-args.ts"
+      "types": "./dist/cli-args.d.ts",
+      "default": "./dist/cli-args.js"
     },
     "./cli-runner": {
-      "types": "./src/cli-runner.ts",
-      "default": "./src/cli-runner.ts"
+      "types": "./dist/cli-runner.d.ts",
+      "default": "./dist/cli-runner.js"
     },
     "./command-preview": {
-      "types": "./src/command-preview.ts",
-      "default": "./src/command-preview.ts"
+      "types": "./dist/command-preview.d.ts",
+      "default": "./dist/command-preview.js"
     },
     "./format-results": {
-      "types": "./src/format-results.ts",
-      "default": "./src/format-results.ts"
+      "types": "./dist/format-results.d.ts",
+      "default": "./dist/format-results.js"
     },
     "./interactive-menu": {
-      "types": "./src/interactive-menu.ts",
-      "default": "./src/interactive-menu.ts"
+      "types": "./dist/interactive-menu.d.ts",
+      "default": "./dist/interactive-menu.js"
     },
     "./ink-wizard-model": {
-      "types": "./src/ink-wizard-model.ts",
-      "default": "./src/ink-wizard-model.ts"
+      "types": "./dist/ink-wizard-model.d.ts",
+      "default": "./dist/ink-wizard-model.js"
     },
     "./key-projections": {
-      "types": "./src/key-projections.ts",
-      "default": "./src/key-projections.ts"
+      "types": "./dist/key-projections.d.ts",
+      "default": "./dist/key-projections.js"
     },
     "./modes": {
-      "types": "./src/modes.ts",
-      "default": "./src/modes.ts"
+      "types": "./dist/modes.d.ts",
+      "default": "./dist/modes.js"
     },
     "./opentui-wizard-model": {
-      "types": "./src/opentui-wizard-model.ts",
-      "default": "./src/opentui-wizard-model.ts"
+      "types": "./dist/opentui-wizard-model.d.ts",
+      "default": "./dist/opentui-wizard-model.js"
     },
     "./package-render-values": {
-      "types": "./src/package-render-values.ts",
-      "default": "./src/package-render-values.ts"
+      "types": "./dist/package-render-values.d.ts",
+      "default": "./dist/package-render-values.js"
     },
     "./seed-files": {
-      "types": "./src/seed-files.ts",
-      "default": "./src/seed-files.ts"
+      "types": "./dist/seed-files.d.ts",
+      "default": "./dist/seed-files.js"
     },
     "./target-files": {
-      "types": "./src/target-files.ts",
-      "default": "./src/target-files.ts"
+      "types": "./dist/target-files.d.ts",
+      "default": "./dist/target-files.js"
     },
     "./target-runner": {
-      "types": "./src/target-runner.ts",
-      "default": "./src/target-runner.ts"
+      "types": "./dist/target-runner.d.ts",
+      "default": "./dist/target-runner.js"
     },
     "./ui-helpers": {
-      "types": "./src/ui-helpers.ts",
-      "default": "./src/ui-helpers.ts"
+      "types": "./dist/ui-helpers.d.ts",
+      "default": "./dist/ui-helpers.js"
     },
     "./ui-launcher": {
-      "types": "./src/ui-launcher.ts",
-      "default": "./src/ui-launcher.ts"
+      "types": "./dist/ui-launcher.d.ts",
+      "default": "./dist/ui-launcher.js"
     },
     "./workspace-values": {
-      "types": "./src/workspace-values.ts",
-      "default": "./src/workspace-values.ts"
+      "types": "./dist/workspace-values.d.ts",
+      "default": "./dist/workspace-values.js"
     },
     "./write-target-file": {
-      "types": "./src/write-target-file.ts",
-      "default": "./src/write-target-file.ts"
+      "types": "./dist/write-target-file.d.ts",
+      "default": "./dist/write-target-file.js"
     },
     "./package.json": "./package.json",
     "./opentui-app": {
-      "types": "./src/opentui-app.tsx",
-      "default": "./src/opentui-app.tsx"
+      "types": "./dist/opentui-app.d.ts",
+      "default": "./dist/opentui-app.js"
     },
     "./ink-app": {
-      "types": "./src/ink-app.tsx",
-      "default": "./src/ink-app.tsx"
+      "types": "./dist/ink-app.d.ts",
+      "default": "./dist/ink-app.js"
     }
   },
   "files": [
     "dist/",
-    "src/",
-    "!src/**/*.unit.test.ts",
     "README.md",
-    "tsconfig.json",
-    "tsconfig.build.json"
+    "LICENSE"
   ],
   "engines": {
-    "node": ">=24.11.1 <25",
+    "node": ">=22.0.0 <27",
     "npm": ">=9.0.0"
   },
   "packageManager": "npm@11.12.1",
   "dependencies": {
-    "@gg-utils/env-materialize-core": "git+https://github.com/gg-utils/env-materialize-core.git#main"
+    "@gg-utils/env-materialize-core": "git+https://github.com/gg-utils/env-materialize-core.git#v0.2.0",
+    "ink": "8.0.0",
+    "react": "19.3.1"
   },
   "scripts": {
-    "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json",
-    "type-check": "node ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
-    "test": "node ../../node_modules/tsx/dist/cli.mjs --test \"src/**/*.unit.test.ts\""
+    "build": "tsc -p tsconfig.build.json",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test \"src/**/*.unit.test.ts\"",
+    "lint": "eslint --max-warnings 0 .",
+    "check:dist": "node scripts/check-dist.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "eslint": "9.39.5",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gg-utils/env-materialize-kit.git"
+  },
+  "imports": {
+    "#opentui/jsx-runtime": {
+      "types": "./dist/opentui-jsx/jsx-runtime.d.ts",
+      "default": "./dist/opentui-jsx/jsx-runtime.js"
+    }
   }
 }

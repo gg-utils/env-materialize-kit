@@ -23,7 +23,7 @@ import {
   EnvMaterializeKit_parseUiLaunchOptions,
 } from "./ui-launcher.js";
 
-test("EnvMaterializeKit_parseUiLaunchOptions parses cwd and help", () => {
+void test("EnvMaterializeKit_parseUiLaunchOptions parses cwd and help", () => {
   assert.deepEqual(
     EnvMaterializeKit_parseUiLaunchOptions({
       argv: ["--cwd", "/repo"],
@@ -42,7 +42,7 @@ test("EnvMaterializeKit_parseUiLaunchOptions parses cwd and help", () => {
   );
 });
 
-test("EnvMaterializeKit_formatUiHelpText mentions canonical env command", () => {
+void test("EnvMaterializeKit_formatUiHelpText mentions canonical env command", () => {
   const helpText = EnvMaterializeKit_formatUiHelpText({
     invocation: "npm run env:workspace:cli:test",
     title: "Env materialize test",

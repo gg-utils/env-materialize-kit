@@ -37,7 +37,7 @@ const scopedOverride: EnvMaterializeKit_ScopedSeedOverrideConfig<string> = {
   separator: "__",
 };
 
-test("EnvMaterializeKit_parseScopedSeedOverrideKey parses configured override keys", () => {
+void test("EnvMaterializeKit_parseScopedSeedOverrideKey parses configured override keys", () => {
   assert.deepEqual(
     EnvMaterializeKit_parseScopedSeedOverrideKey({
       key: "PROJECT_APP_A__PORT",
@@ -65,7 +65,7 @@ test("EnvMaterializeKit_parseScopedSeedOverrideKey parses configured override ke
   );
 });
 
-test("EnvMaterializeKit_applyRawPackageSeedValues filters and routes seed values", () => {
+void test("EnvMaterializeKit_applyRawPackageSeedValues filters and routes seed values", () => {
   const valuesByKey = new Map<string, string>();
 
   EnvMaterializeKit_applyRawPackageSeedValues({
@@ -92,7 +92,7 @@ test("EnvMaterializeKit_applyRawPackageSeedValues filters and routes seed values
   ]);
 });
 
-test("EnvMaterializeKit map value helpers read and set only present strings", () => {
+void test("EnvMaterializeKit map value helpers read and set only present strings", () => {
   const source = new Map([
     ["BLANK", " "],
     ["VALUE", "kept"],

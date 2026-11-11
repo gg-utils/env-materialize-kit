@@ -1,4 +1,5 @@
-import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "#opentui/jsx-runtime";
+/** @jsxImportSource #opentui */
 /**
  * @fileoverview Reusable OpenTUI renderer for config-driven env materialization wizards.
  *
@@ -17,7 +18,7 @@ import { EnvMaterializeKit_spawnNpxTsxOnce } from "./ui-launcher.js";
 function renderTextFields(options) {
     return options.fields.map((field) => (_jsxs("box", { style: { flexDirection: "column", gap: 1 }, children: [_jsx("text", { children: field.label }), _jsx("input", { onChange: (value) => {
                     options.setModel((current) => field.writeValue(current, value));
-                }, placeholder: field.placeholder, value: field.readValue(options.model) })] }, field.id)));
+                }, ...(field.placeholder === undefined ? {} : { placeholder: field.placeholder }), value: field.readValue(options.model) })] }, field.id)));
 }
 /** OpenTUI application root for a config-driven env-materialize workflow. */
 export function EnvMaterializeKitOpenTuiApp({ advancedFields, behavior, cliScriptRelativePath, cwd, logicalEnvironmentIds, modes, repoRoot, workspaceFields, }) {
@@ -239,4 +240,3 @@ export function EnvMaterializeKitOpenTuiApp({ advancedFields, behavior, cliScrip
                             continueLabel: "Continue to command preview",
                         }), showDescription: true })] })) : null, route === "preview" ? (_jsxs(_Fragment, { children: [_jsx("text", { children: "Command preview (exact)" }), _jsx("scrollbox", { style: { flexGrow: 1 }, children: _jsx("text", { children: previewLines }) }), _jsx("tab-select", { onSelect: (_i, option) => onNavSelect("preview", option?.value), options: EnvMaterializeKit_buildOpenTuiRunBackQuitOptions(), showDescription: true })] })) : null, route === "running" ? (_jsxs(_Fragment, { children: [_jsx("text", { children: "Running materializer (streaming)" }), _jsx("scrollbox", { style: { flexGrow: 1, maxHeight: 18 }, children: _jsx("text", { children: runStdout.length > 0 ? runStdout : "(stdout empty so far)" }) }), _jsx("text", { children: "stderr" }), _jsx("scrollbox", { style: { maxHeight: 6 }, children: _jsx("text", { children: runStderr.length > 0 ? runStderr : "(empty)" }) }), _jsx("text", { children: "Closing when the process exits\u2026" })] })) : null, route === "result" ? (_jsxs(_Fragment, { children: [_jsxs("text", { children: ["Exit code: ", runStatus === null ? "unknown" : String(runStatus)] }), _jsx("text", { children: "Stdout" }), _jsx("scrollbox", { style: { flexGrow: 1, maxHeight: 12 }, children: _jsx("text", { children: runStdout.length > 0 ? runStdout : "(empty)" }) }), _jsx("text", { children: "Engine lines (parsed)" }), _jsx("scrollbox", { style: { maxHeight: 6 }, children: _jsx("text", { children: mutationSummary.length > 0 ? mutationSummary : "(none)" }) }), _jsx("text", { children: "Stderr" }), _jsx("scrollbox", { style: { maxHeight: 5 }, children: _jsx("text", { children: runStderr.length > 0 ? runStderr : "(empty)" }) }), _jsx("tab-select", { onSelect: (_i, option) => onNavSelect("result", option?.value), options: EnvMaterializeKit_buildOpenTuiResultOptions(), showDescription: true })] })) : null] }));
 }
-//# sourceMappingURL=opentui-app.js.map

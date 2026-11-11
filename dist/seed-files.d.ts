@@ -64,4 +64,3 @@ export declare function EnvMaterializeKit_resolveMachineProfile(options: EnvMate
 export declare function EnvMaterializeKit_readOptionalEnvFile(options: EnvMaterializeKit_ReadOptionalEnvFile_Options): Map<string, string>;
 /** Loads one required seed file plus optional machine override and default seed maps. */
 export declare function EnvMaterializeKit_loadSeedFiles<ScopedPackageId extends string>(options: EnvMaterializeKit_LoadSeedFiles_Options<ScopedPackageId>): EnvMaterializeKit_LoadSeedFilesResult<ScopedPackageId>;
-//# sourceMappingURL=seed-files.d.ts.map

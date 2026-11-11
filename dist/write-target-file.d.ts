@@ -36,4 +36,3 @@ export type EnvMaterializeKit_WriteTargetFileOptions = {
 };
 /** Applies env-materialize write-mode semantics to one on-disk env file. */
 export declare function EnvMaterializeKit_writeTargetFile(options: EnvMaterializeKit_WriteTargetFileOptions): EnvMaterializeKit_TargetMutationResult;
-//# sourceMappingURL=write-target-file.d.ts.map

@@ -32,7 +32,7 @@ import {
   EnvMaterializeKit_summarizeOpenTuiMaterializerOutput,
 } from "./opentui-wizard-model.js";
 
-test("OpenTUI wizard model resolves profile discovery root", () => {
+void test("OpenTUI wizard model resolves profile discovery root", () => {
   assert.equal(
     EnvMaterializeKit_resolveOpenTuiProfileDiscoveryRoot({
       fallbackRoot: "/repo",
@@ -49,7 +49,7 @@ test("OpenTUI wizard model resolves profile discovery root", () => {
   );
 });
 
-test("OpenTUI wizard model builds navigation options", () => {
+void test("OpenTUI wizard model builds navigation options", () => {
   assert.deepEqual(
     EnvMaterializeKit_buildOpenTuiContinueBackQuitOptions({
       continueLabel: "Continue to mode",
@@ -75,7 +75,7 @@ test("OpenTUI wizard model builds navigation options", () => {
   ]);
 });
 
-test("OpenTUI wizard model builds select options", () => {
+void test("OpenTUI wizard model builds select options", () => {
   assert.deepEqual(
     EnvMaterializeKit_buildOpenTuiModeOptions({ modes: ["check", "restore"] }),
     [
@@ -118,7 +118,7 @@ test("OpenTUI wizard model builds select options", () => {
   );
 });
 
-test("OpenTUI wizard model finds selected option and route indexes", () => {
+void test("OpenTUI wizard model finds selected option and route indexes", () => {
   const options = EnvMaterializeKit_buildOpenTuiTargetsOptions();
   assert.equal(
     EnvMaterializeKit_findOpenTuiSelectedOptionIndex({
@@ -138,7 +138,7 @@ test("OpenTUI wizard model finds selected option and route indexes", () => {
   assert.equal(EnvMaterializeKit_openTuiRouteIndex({ route: "preview" }), 6);
 });
 
-test("OpenTUI wizard model summarizes materializer output", () => {
+void test("OpenTUI wizard model summarizes materializer output", () => {
   assert.equal(
     EnvMaterializeKit_summarizeOpenTuiMaterializerOutput({
       stderr: "[env-materialize] warning b\n",

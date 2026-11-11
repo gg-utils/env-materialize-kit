@@ -43,4 +43,3 @@ export type EnvMaterializeKit_RunTargetFilesResult<Result> = {
 };
 /** Iterates resolved env target files, renders each one, and forwards it to the write callback. */
 export declare function EnvMaterializeKit_runTargetFiles<PackageId extends string, Mode extends EnvMaterializeKit_Mode, Result>(options: EnvMaterializeKit_RunTargetFilesOptions<PackageId, Mode, Result>): EnvMaterializeKit_RunTargetFilesResult<Result>;
-//# sourceMappingURL=target-runner.d.ts.map
