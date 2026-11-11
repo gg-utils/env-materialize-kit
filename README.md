@@ -184,8 +184,11 @@ env-materialize-check-keys --template <path> --target <path> [--optional NAME ..
 ```
 
 Exit 0 means all required names exist, 1 means missing names or an absent target, and 2
-means usage or I/O errors. Extras are informational. Output contains names only; errors
-do not echo paths, arguments, values or underlying errors. No files are written.
+means usage or I/O errors. Extras are informational. Output contains names only. Usage errors
+do not echo arguments. An I/O error names the file path and the underlying file system error
+(for example `ENOENT: no such file or directory`), which `checkKeys` also keeps as the
+error's `cause`. No error message or cause ever contains a value: a failure that does not
+come from the file system is reported without its details. No files are written.
 
 ```js
 import { checkKeys } from "@gg-utils/env-materialize-kit/check-keys";

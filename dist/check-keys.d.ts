@@ -23,6 +23,7 @@ export interface CheckKeysResult {
  * @param targetPath - Local dotenv target file, which may be absent.
  * @param options - Optional names and exclusions for extra names.
  * @returns Sorted name arrays and target existence; never values or paths.
- * @throws Error with a fixed message on I/O errors other than an absent target.
+ * @throws EnvMaterializeKit_KeyInputError on I/O errors other than an absent target. Its message
+ * names the path and the file system error, which is kept as `cause`; it never holds values.
  */
 export declare function checkKeys(templatePath: string, targetPath: string, options?: CheckKeysOptions): CheckKeysResult;

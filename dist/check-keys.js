@@ -1,6 +1,7 @@
 /** @fileoverview Read-only key coverage checks using the value-discarding core scanner. */
 import { openSync, readSync, closeSync } from "node:fs";
 import { EnvMaterialize_parseKeyNames } from "@gg-utils/env-materialize-core/key-names";
+import { EnvMaterializeKit_keyInputError } from "./key-input-error.js";
 /**
  * Yield one byte at a time, overwriting the buffer immediately after each read.
  * @param descriptor - Open read-only descriptor owned by the caller.
@@ -20,11 +21,12 @@ function* bytes(descriptor) {
     }
 }
 /**
- * Scan a file with fixed, path-free I/O errors.
- * @param path - File to open; never interpolated into errors.
+ * Scan a file; I/O errors name the path and the file system cause, never file content.
+ * @param path - File to open; shown in errors.
  * @param allowAbsent - Whether a missing file returns null.
  * @returns Sorted key names, or null for an allowed absent file.
- * @throws Error with a fixed message for any other I/O failure.
+ * @throws EnvMaterializeKit_KeyInputError for any other I/O failure, with the file system
+ * error as `cause`.
  */
 function readNames(path, allowAbsent) {
     let descriptor;
@@ -36,15 +38,15 @@ function readNames(path, allowAbsent) {
         if (descriptor === undefined && allowAbsent && error instanceof Error &&
             "code" in error && error.code === "ENOENT")
             return null;
-        throw new Error("Unable to read key names.");
+        throw EnvMaterializeKit_keyInputError("Unable to read key names from", path, error);
     }
     finally {
         if (descriptor !== undefined) {
             try {
                 closeSync(descriptor);
             }
-            catch {
-                throw new Error("Unable to close key input.");
+            catch (error) {
+                throw EnvMaterializeKit_keyInputError("Unable to close key input", path, error);
             }
         }
     }
@@ -56,7 +58,8 @@ function readNames(path, allowAbsent) {
  * @param targetPath - Local dotenv target file, which may be absent.
  * @param options - Optional names and exclusions for extra names.
  * @returns Sorted name arrays and target existence; never values or paths.
- * @throws Error with a fixed message on I/O errors other than an absent target.
+ * @throws EnvMaterializeKit_KeyInputError on I/O errors other than an absent target. Its message
+ * names the path and the file system error, which is kept as `cause`; it never holds values.
  */
 export function checkKeys(templatePath, targetPath, options = {}) {
     const template = readNames(templatePath, false);
