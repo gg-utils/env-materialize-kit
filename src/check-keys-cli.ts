@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-/** @fileoverview Standalone key-name checker; output and errors never echo argv or values. */
+/** @fileoverview Standalone key-name checker; output and errors never echo values. */
 import { checkKeys } from "./check-keys.js";
+import { EnvMaterializeKit_KeyInputError } from "./key-input-error.js";
 
 /**
  * Execute the key checker with sanitized usage and I/O diagnostics.
- * @param argv - User arguments, never echoed on failure.
+ * @param argv - User arguments. Usage errors never echo them; an I/O error names the file path
+ * it failed on and the file system error, never file content.
  * @returns 0 for required coverage, 1 for missing input/keys, 2 for usage/I/O errors.
  */
 function main(argv: string[]): number {
@@ -47,8 +49,10 @@ function main(argv: string[]): number {
       console.log(`Present: ${result.present.join(", ") || "none"}`);
     }
     return !result.targetExists || result.missing.length ? 1 : 0;
-  } catch {
-    console.error("Unable to check key names.");
+  } catch (error) {
+    // Only the kit's own error is printed: its message is built from the path and a file
+    // system error. Anything else stays behind the fixed text.
+    console.error(error instanceof EnvMaterializeKit_KeyInputError ? error.message : "Unable to check key names.");
     return 2;
   }
 }
