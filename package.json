@@ -1,6 +1,6 @@
 {
   "name": "@gg-utils/env-materialize-kit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Reusable env materialization command and config primitives.",
   "license": "MIT",
   "type": "module",

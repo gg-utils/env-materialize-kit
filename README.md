@@ -10,7 +10,7 @@ and command names belong in the consuming adapter.
 ## Install
 
 ```bash
-npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.0
+npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1
 ```
 
 Package JSON form:
@@ -18,7 +18,7 @@ Package JSON form:
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.0"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1"
   }
 }
 ```
@@ -138,7 +138,7 @@ Requires Node `>=22.0.0 <27`. Built ESM JavaScript and declarations are included
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.0"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1"
   }
 }
 ```
