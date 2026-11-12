@@ -10,7 +10,7 @@ and command names belong in the consuming adapter.
 ## Install
 
 ```bash
-npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1
+npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.4.0
 ```
 
 Package JSON form:
@@ -18,7 +18,7 @@ Package JSON form:
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.4.0"
   }
 }
 ```
@@ -45,6 +45,9 @@ Skip this package when you only need low-level `.env` parsing; use
 | `@gg-utils/env-materialize-kit/target-files` | Config-driven target resolution. |
 | `@gg-utils/env-materialize-kit/target-runner` | Iterate targets and connect render/write callbacks. |
 | `@gg-utils/env-materialize-kit/write-target-file` | Apply write and sync policies. |
+| `@gg-utils/env-materialize-kit/seed-sources` | Pluggable seed sources and ordered seed layers with machine overrides. |
+| `@gg-utils/env-materialize-kit/value-table` | Table-driven, pure value resolution. |
+| `@gg-utils/env-materialize-kit/managed-keys` | Key-level check and write for partly managed env files, with name-only output. |
 | `@gg-utils/env-materialize-kit/ink-app` | Reusable Ink UI renderer. |
 | `@gg-utils/env-materialize-kit/opentui-app` | Reusable OpenTUI UI renderer. |
 | `@gg-utils/env-materialize-kit/ui-launcher` | Shared UI launcher flag parsing and spawn helpers. |
@@ -138,7 +141,7 @@ Requires Node `>=22.0.0 <27`. Built ESM JavaScript and declarations are included
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.4.0"
   }
 }
 ```
@@ -204,3 +207,37 @@ The core scanner consumes one byte at a time without constructing value strings.
 export, comments, blank lines, CRLF, quoted multiline values and escaped double quotes.
 Invalid rows are ignored; an unterminated quote consumes the remainder. This checks presence
 only, including empty assignments, and does not validate value correctness.
+
+### Seed sources, value tables and managed keys (v0.4.0)
+
+These three modules let an adapter keep its own code to data tables.
+
+- `seed-sources`: a seed source is where private seed files live. `EnvMaterializeKit_createDirectorySeedSource`
+  reads a folder on this machine. `EnvMaterializeKit_createSeedSource` builds a source from config through a
+  registry of factories per kind, so moving seeds to another kind of store is a config change. An adapter lists
+  its layout as ordered layers (for example a logical environment, shared defaults, a machine override).
+  `EnvMaterializeKit_loadSeedLayers` reads them and `EnvMaterializeKit_mergeSeedLayers` applies them in order:
+  later layers win, blank values inherit, and each key records the layer that supplied it.
+  `EnvMaterializeKit_selectSeedMachineProfile` picks the machine override folder. Seed paths cannot escape the
+  source root.
+- `value-table`: `EnvMaterializeKit_resolveValueTable` resolves rows of `{ key, sources, required, secret }`.
+  Sources are a seed key, a pure derivation from earlier rows, or a default. It never reads or patches
+  `process.env`.
+- `managed-keys`: `EnvMaterializeKit_checkManagedEnvFile` and `EnvMaterializeKit_writeManagedEnvFile` compare and
+  write only the managed keys of a file. Other lines stay byte for byte. Preserved keys with no desired value, such
+  as secrets the seeds do not hold, are kept. Results and `EnvMaterializeKit_formatManagedKeyResult` carry key
+  names and statuses only. New files are created with owner-only permissions.
+
+```js
+import { EnvMaterializeKit_createDirectorySeedSource, EnvMaterializeKit_loadSeedLayers,
+  EnvMaterializeKit_mergeSeedLayers } from "@gg-utils/env-materialize-kit/seed-sources";
+import { EnvMaterializeKit_resolveValueTable } from "@gg-utils/env-materialize-kit/value-table";
+import { EnvMaterializeKit_checkManagedEnvFile, EnvMaterializeKit_formatManagedKeyResult }
+  from "@gg-utils/env-materialize-kit/managed-keys";
+
+const source = EnvMaterializeKit_createDirectorySeedSource({ rootPath: seedFolder });
+const seeds = EnvMaterializeKit_mergeSeedLayers(EnvMaterializeKit_loadSeedLayers({ source, layers }));
+const table = EnvMaterializeKit_resolveValueTable({ rows, seedValues: seeds.valuesByKey, context });
+const result = EnvMaterializeKit_checkManagedEnvFile({ filePath, desiredValues: table.valuesByKey });
+for (const line of EnvMaterializeKit_formatManagedKeyResult(result)) console.log(line);
+```

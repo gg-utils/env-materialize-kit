@@ -1,6 +1,6 @@
 {
   "name": "@gg-utils/env-materialize-kit",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Reusable env materialization command and config primitives.",
   "license": "MIT",
   "type": "module",
@@ -92,6 +92,18 @@
     "./check-keys": {
       "types": "./dist/check-keys.d.ts",
       "default": "./dist/check-keys.js"
+    },
+    "./seed-sources": {
+      "types": "./dist/seed-sources.d.ts",
+      "default": "./dist/seed-sources.js"
+    },
+    "./value-table": {
+      "types": "./dist/value-table.d.ts",
+      "default": "./dist/value-table.js"
+    },
+    "./managed-keys": {
+      "types": "./dist/managed-keys.d.ts",
+      "default": "./dist/managed-keys.js"
     }
   },
   "files": [

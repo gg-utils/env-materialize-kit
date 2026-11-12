@@ -46,3 +46,6 @@ export * from "./workspace-values.js";
 export * from "./write-target-file.js";
 
 export * from "./check-keys.js";
+export * from "./managed-keys.js";
+export * from "./seed-sources.js";
+export * from "./value-table.js";
