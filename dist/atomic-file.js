@@ -1,19 +1,23 @@
 /**
- * @fileoverview Atomic, symlink-refusing text file writes.
+ * @fileoverview Crash-atomic, symlink-refusing text file writes.
  *
  * A write goes to an exclusive temporary file beside the destination, is flushed with
  * `fsync`, then renamed over the destination, so a crash or failed write leaves either the
- * old file or the new one, never a truncated mix. The destination keeps its permission bits;
- * a new file gets the mode the caller gives (owner-only by default). A destination that is a
- * symlink, or anything other than a regular file, is refused, so a write can never be
- * redirected to another file.
+ * old file or the new one, never a truncated mix. "Atomic" here means that crash guarantee,
+ * not protection against concurrent changes. The destination keeps its permission bits; a
+ * new file gets the mode the caller gives (owner-only by default). A destination that is a
+ * symlink, or anything other than a regular file, is refused when checked.
  *
  * Parent folder policy: by default a write is refused when any folder between the
- * destination's root and the file is a symlink, so a swapped folder cannot redirect the
- * write elsewhere. The root is `rootPath` when given (the root itself may be a symlink);
+ * destination's root and the file is a symlink. The root is `rootPath` when given (the root itself may be a symlink);
  * without it every ancestor is checked and only top-level system aliases such as `/tmp` or
  * `/var` on macOS are tolerated. Pass `allowSymlinkedParents: true` to opt out. The check runs
  * before the parent folders are created, after, and again just before the rename.
+ *
+ * Trust model: the destination tree must be trusted, meaning no other actor with the same
+ * file system permissions changes it during the write. The checks are point-in-time, so a
+ * folder swapped between the last check and the rename is not caught. If Node gains a native
+ * `openat` path, real directory handles can replace these checks.
  *
  * Flow: validate destination and parents -> temp file (exclusive) -> write + fsync -> check
  * parents -> rename -> fsync folder.
@@ -108,14 +112,15 @@ export function EnvMaterializeKit_nodeAtomicFileOperations() {
     };
 }
 /**
- * Writes text atomically: temp file beside the destination, fsync, rename. The destination
- * keeps its permission bits; a new file gets `options.mode` (0o600 by default).
+ * Writes text crash-atomically: temp file beside the destination, fsync, rename. The
+ * destination keeps its permission bits; a new file gets `options.mode` (0o600 by default).
+ * Unless `options.allowSymlinkedParents` is true, the write is refused when a folder between
+ * `options.rootPath` (or the top of the file system) and the file is a symlink. The symlink
+ * checks assume a trusted tree that no other actor with the same permissions changes during
+ * the write.
  *
  * @param filePath - Destination path. Parent folders are created when absent.
  * @param content - UTF-8 text to write.
- * Unless `options.allowSymlinkedParents` is true, the write is refused when a folder between
- * `options.rootPath` (or the top of the file system) and the file is a symlink.
- *
  * @param options - Mode for a new file, the destination's root and the parent folder policy.
  * @param operations - File operations; defaults to `node:fs`.
  * @throws Error naming the path when the destination is a symlink or not a regular file,

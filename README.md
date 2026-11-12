@@ -49,8 +49,8 @@ Skip this package when you only need low-level `.env` parsing; use
 | `@gg-utils/env-materialize-kit/value-table` | Table-driven, pure value resolution. |
 | `@gg-utils/env-materialize-kit/managed-keys` | Key-level check and write for partly managed env files, with name-only output. |
 | `@gg-utils/env-materialize-kit/env-assignments` | Byte-preserving dotenv scanning and dotenv-safe value quoting (Node `util.parseEnv` grammar). |
-| `@gg-utils/env-materialize-kit/atomic-file` | Atomic, symlink-refusing text file writes that keep the destination's mode. |
-| `@gg-utils/env-materialize-kit/contained-paths` | Reads that stay inside a root while the tree changes, and the parent-folder symlink check. |
+| `@gg-utils/env-materialize-kit/atomic-file` | Crash-atomic, symlink-refusing text file writes that keep the destination's mode. |
+| `@gg-utils/env-materialize-kit/contained-paths` | Reads that stay inside a root of a trusted tree and refuse a single symlink swap, and the parent-folder symlink check. |
 | `@gg-utils/env-materialize-kit/ink-app` | Reusable Ink UI renderer. |
 | `@gg-utils/env-materialize-kit/opentui-app` | Reusable OpenTUI UI renderer. |
 | `@gg-utils/env-materialize-kit/ui-launcher` | Shared UI launcher flag parsing and spawn helpers. |
@@ -223,16 +223,22 @@ These three modules let an adapter keep its own code to data tables.
   later layers win, blank values inherit, and each key records the layer that supplied it.
   `EnvMaterializeKit_selectSeedMachineProfile` picks the machine override folder. Seed files are read with Node's
   dotenv grammar (`util.parseEnv`). Seed paths cannot escape the source root: every path is checked lexically and
-  again with symlinks resolved, before anything is read. With the default node adapter the read also holds when a
-  folder or file is swapped for a symlink between that check and the read (see `contained-paths`). A custom
+  again with symlinks resolved, before anything is read. With the default node adapter the read also refuses a
+  folder or file swapped once for a symlink between that check and the read (see `contained-paths`). A custom
   `fileSystem` port that reads real files should set `readContainedTextFile` to
-  `EnvMaterializeKit_readContainedTextFile` to get the same guarantee.
+  `EnvMaterializeKit_readContainedTextFile` to get the same checks. The seed folder must be a trusted tree (see
+  the trust model below).
 - `contained-paths`: `EnvMaterializeKit_readContainedTextFile` opens the canonical in-root path with `O_NOFOLLOW`,
   then, holding the descriptor, checks with `lstat` that no folder on that path is a symlink and that the
   descriptor has the same device and inode as the in-root path. Only then does it read, through that descriptor,
-  and it always closes it. Node has no `openat`, so the check is bound to the opened file rather than walked from a
-  root descriptor. Refusals name the relative path only. `EnvMaterializeKit_assertNoSymlinkedParents` is the
+  and it always closes it. Node has no `openat`, so it re-checks after the open rather than walking from a root
+  descriptor. Refusals name the relative path only. `EnvMaterializeKit_assertNoSymlinkedParents` is the
   parent-folder check the writer uses.
+  **Trust model:** the tree must be trusted, meaning no other actor with the same file system permissions mutates
+  it concurrently. The checks catch a stray or one-shot symlink swap. They run one after another, so a concurrent
+  actor that swaps a folder several times, timed between them, can still lead a read outside the root or expose
+  outside folder names in a listing; a test documents this. They are not a sandbox. If Node gains a native
+  `openat` path, real directory handles can replace these checks.
 - `value-table`: `EnvMaterializeKit_resolveValueTable` resolves rows of `{ key, sources, required, secret }`.
   Sources are a seed key, a pure derivation from earlier rows, or a default. It never reads or patches
   `process.env`.
@@ -245,14 +251,16 @@ These three modules let an adapter keep its own code to data tables.
   with no desired value, such as secrets the seeds do not hold, are kept. Results and
   `EnvMaterializeKit_formatManagedKeyResult` carry key names and statuses only.
 - `atomic-file`: `EnvMaterializeKit_writeTextFileAtomically` writes a temp file beside the destination, fsyncs it
-  and renames it over the destination, so a failure leaves the old file intact. The destination keeps its mode; new
+  and renames it over the destination, so a crash or failure leaves the old file intact ("atomic" means this crash
+  guarantee, not protection against concurrent changes). The destination keeps its mode; new
   files are owner-only. A destination that is a symlink or not a regular file is refused. `managed-keys` writes
   through it by default.
   Parent folder policy: a write is refused when any folder between the destination's root and the file is a
   symlink. Pass `rootPath` (such as the checkout) to say where the root is; the root itself may be a symlink.
   Without `rootPath` every ancestor is checked and only top-level system aliases directly under `/` (such as
   `/tmp` or `/var` on macOS) are tolerated. Pass `allowSymlinkedParents: true` to opt out; the default is false.
-  The check runs before the folders are created, after, and again just before the rename.
+  The check runs before the folders are created, after, and again just before the rename. It is point-in-time and
+  assumes the same trusted tree as `contained-paths`.
 
 ```js
 import { EnvMaterializeKit_createDirectorySeedSource, EnvMaterializeKit_loadSeedLayers,

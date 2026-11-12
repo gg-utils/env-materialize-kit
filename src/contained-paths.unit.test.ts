@@ -174,6 +174,56 @@ void test("the default directory seed source refuses the swap and never reads ou
   });
 });
 
+/**
+ * Puts the original in-root folder back where the outside symlink was.
+ * @param layout - Swap layout.
+ */
+function restoreFolder(layout: SwapLayout): void {
+  fs.unlinkSync(layout.inside);
+  fs.renameSync(`${layout.inside}.moved`, layout.inside);
+}
+
+// Known limit under the trust model, kept as a test of expected residue. Node has no
+// `openat`, so the post-open checks run one after another. A concurrent actor with the same
+// permissions can swap three times: (1) after the check, so the open follows an outside
+// symlink; (2) after the open, restoring the folder so the `lstat` walk sees no symlink;
+// (3) right after the walk's last folder check, so `fstat` and `lstat` of the in-root path
+// both see the outside file. The read then goes through. The swaps are driven by the hooks
+// and by a wrapper that returns the real `lstat` result before swapping, so the test is
+// deterministic. If real directory handles replace these checks, this test should flip to
+// expect a refusal.
+void test("documented limit: three timed swaps read outside the root (trusted tree required)", () => {
+  withSwapLayout((layout) => {
+    const realInside = fs.realpathSync(layout.inside);
+    const realLstat = fs.lstatSync;
+    let armed = false;
+    // The module under test always calls lstat with `throwIfNoEntry: false`.
+    mock.method(fs, "lstatSync", (target: fs.PathLike): fs.Stats | undefined => {
+      const stats = realLstat(target, { throwIfNoEntry: false });
+      if (armed && target === realInside) {
+        armed = false;
+        swapFolderForOutsideLink(layout);
+      }
+      return stats;
+    });
+    const text = EnvMaterializeKit_readContainedTextFile({
+      rootPath: layout.root,
+      relativePath: "env/local.env",
+      hooks: {
+        afterCheck: () => {
+          swapFolderForOutsideLink(layout);
+        },
+        afterOpen: () => {
+          restoreFolder(layout);
+          armed = true;
+        },
+      },
+    });
+    assert.equal(armed, false, "the third swap ran");
+    assert.equal(text, `SECRET=${OUTSIDE_MARKER}\n`, "the outside file was read: expected residue");
+  });
+});
+
 void test("a root reached through a symlink still reads; symlinked parents below it are refused", () => {
   withSwapLayout((layout) => {
     const linkedRoot = `${layout.root}.link`;

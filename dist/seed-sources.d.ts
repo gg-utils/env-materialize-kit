@@ -45,8 +45,9 @@ export type EnvMaterializeKit_SeedFileSystem = {
      */
     realPath?: (absolutePath: string) => string;
     /**
-     * Reads a file that must stay inside a root, holding against a folder or file swapped for
-     * a symlink during the read (see `EnvMaterializeKit_readContainedTextFile`). When present,
+     * Reads a file that must stay inside a root, refusing a folder or file swapped once for a
+     * symlink during the read (see `EnvMaterializeKit_readContainedTextFile`). It assumes a
+     * trusted tree that no other actor with the same permissions mutates concurrently. When present,
      * seed reads use it instead of `readTextFile`. The node adapter provides it; a custom port
      * that reads real files should pass `EnvMaterializeKit_readContainedTextFile` here.
      */
@@ -142,9 +143,11 @@ export declare function EnvMaterializeKit_nodeSeedFileSystem(): EnvMaterializeKi
 /**
  * Creates a seed source backed by a folder on this machine. Seed files are read with Node's
  * dotenv grammar (`util.parseEnv`). Every path is checked against the root before reading,
- * lexically and with symlinks resolved. With the node adapter (the default), reads also hold
- * against a folder or file swapped for a symlink between the check and the read, and a
- * listing is checked again after it was taken.
+ * lexically and with symlinks resolved. With the node adapter (the default), reads also
+ * refuse a folder or file swapped once for a symlink between the check and the read, and a
+ * listing is checked again after it was taken. The seed folder must be a trusted tree: no
+ * other actor with the same permissions may change it concurrently, because repeated swaps
+ * timed between the checks can still expose outside files or folder names.
  *
  * @param options - The folder and optional file system double.
  * @param options.rootPath - Absolute path of the seed folder.
