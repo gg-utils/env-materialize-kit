@@ -251,8 +251,9 @@ These three modules let an adapter keep its own code to data tables.
   with no desired value, such as secrets the seeds do not hold, are kept. Results and
   `EnvMaterializeKit_formatManagedKeyResult` carry key names and statuses only.
 - `atomic-file`: `EnvMaterializeKit_writeTextFileAtomically` writes a temp file beside the destination, fsyncs it
-  and renames it over the destination, so a crash or failure leaves the old file intact ("atomic" means this crash
-  guarantee, not protection against concurrent changes). The destination keeps its mode; new
+  and renames it over the destination, so after a crash or failure a reader sees either the complete old or the
+  complete new file, never a truncated mix ("atomic" means this crash guarantee, not protection against concurrent
+  changes). The destination keeps its mode; new
   files are owner-only. A destination that is a symlink or not a regular file is refused. `managed-keys` writes
   through it by default.
   Parent folder policy: a write is refused when any folder between the destination's root and the file is a

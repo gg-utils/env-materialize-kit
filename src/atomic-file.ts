@@ -2,8 +2,8 @@
  * @fileoverview Crash-atomic, symlink-refusing text file writes.
  *
  * A write goes to an exclusive temporary file beside the destination, is flushed with
- * `fsync`, then renamed over the destination, so a crash or failed write leaves either the
- * old file or the new one, never a truncated mix. "Atomic" here means that crash guarantee,
+ * `fsync`, then renamed over the destination, so after a crash or failed write a reader sees
+ * either the complete old or the complete new file, never a truncated mix. "Atomic" here means that crash guarantee,
  * not protection against concurrent changes. The destination keeps its permission bits; a
  * new file gets the mode the caller gives (owner-only by default). A destination that is a
  * symlink, or anything other than a regular file, is refused when checked.
@@ -166,7 +166,10 @@ export function EnvMaterializeKit_nodeAtomicFileOperations(): EnvMaterializeKit_
  * @param options - Mode for a new file, the destination's root and the parent folder policy.
  * @param operations - File operations; defaults to `node:fs`.
  * @throws Error naming the path when the destination is a symlink or not a regular file,
- * when a parent folder is a symlink and that is not allowed, or when any step fails. The temp file is removed on failure and the destination is untouched.
+ * when a parent folder is a symlink and that is not allowed, or when any step fails. A reader
+ * then sees either the complete old or the complete new file, never a truncated mix: a
+ * failure before the rename removes the temp file and leaves the old file, and a failure
+ * after it (flushing the folder) leaves the complete new file.
  * @example
  * ```typescript
  * EnvMaterializeKit_writeTextFileAtomically("/app/.env.local", "A=1\n", { mode: 0o600, rootPath: "/app" });
