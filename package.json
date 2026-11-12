@@ -104,11 +104,20 @@
     "./managed-keys": {
       "types": "./dist/managed-keys.d.ts",
       "default": "./dist/managed-keys.js"
+    },
+    "./atomic-file": {
+      "types": "./dist/atomic-file.d.ts",
+      "default": "./dist/atomic-file.js"
+    },
+    "./env-assignments": {
+      "types": "./dist/env-assignments.d.ts",
+      "default": "./dist/env-assignments.js"
     }
   },
   "files": [
     "dist/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {

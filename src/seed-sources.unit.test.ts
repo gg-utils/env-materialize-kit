@@ -3,6 +3,8 @@
  * @see src/seed-sources.ts - Module under test.
  */
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
@@ -109,4 +111,43 @@ void test("source kinds are pluggable through a factory registry", () => {
   assert.equal(EnvMaterializeKit_createSeedSource({ config: { kind: "directory" }, factories }).kind, "directory");
   assert.throws(() => EnvMaterializeKit_createSeedSource({ config: { kind: "vault" }, factories }),
     /Unknown seed source kind vault. Known kinds: directory, fixed/u);
+});
+
+void test("symlinks that lead outside the seed root are refused before reading", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "env-kit-seed-links-"));
+  try {
+    const root = path.join(base, "seeds");
+    const outside = path.join(base, "outside");
+    fs.mkdirSync(path.join(root, "environments"), { recursive: true });
+    fs.mkdirSync(outside);
+    fs.writeFileSync(path.join(outside, "secret.env"), "OUTSIDE=synthetic-outside\n");
+    fs.writeFileSync(path.join(root, "environments", "local.env"), "INSIDE=1\n");
+    fs.symlinkSync(path.join(outside, "secret.env"), path.join(root, "environments", "linked.env"));
+    fs.symlinkSync(outside, path.join(root, "linked-folder"));
+    fs.symlinkSync(path.join(root, "environments", "local.env"), path.join(root, "inside-link.env"));
+    const source = EnvMaterializeKit_createDirectorySeedSource({ rootPath: root });
+    assert.equal(source.readEnvFile("environments/local.env")?.get("INSIDE"), "1");
+    assert.equal(source.readEnvFile("inside-link.env")?.get("INSIDE"), "1");
+    for (const relativePath of ["environments/linked.env", "linked-folder/secret.env", "linked-folder/missing.env"]) {
+      assert.throws(() => source.readEnvFile(relativePath), /outside the source root through a symlink/u, relativePath);
+    }
+    assert.throws(() => source.listDirectories("linked-folder"), /through a symlink/u);
+    const viaLinkedRoot = path.join(base, "root-link");
+    fs.symlinkSync(root, viaLinkedRoot);
+    const linkedRootSource = EnvMaterializeKit_createDirectorySeedSource({ rootPath: viaLinkedRoot });
+    assert.equal(linkedRootSource.readEnvFile("environments/local.env")?.get("INSIDE"), "1");
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
+void test("seed files are read with the dotenv grammar of util.parseEnv", () => {
+  const source = EnvMaterializeKit_createDirectorySeedSource({
+    rootPath: "/seeds",
+    fileSystem: {
+      readTextFile: () => "export A='x #y'\nB=plain # comment\nC=\"one\ntwo\"\n",
+      listDirectoryNames: () => [],
+    },
+  });
+  assert.deepEqual([...(source.readEnvFile("a.env") ?? new Map<string, string>())], [["A", "x #y"], ["B", "plain"], ["C", "one\ntwo"]]);
 });

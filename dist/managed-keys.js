@@ -3,13 +3,21 @@
  *
  * Many env files mix keys a tool owns (hostnames, ports, origins) with keys it must not
  * touch (database URLs, secrets typed by hand). This module compares and writes only the
- * managed keys. Every other line stays byte for byte. Results carry key names and statuses
- * only, never values, so they are safe to print and log.
+ * managed keys: each managed assignment's own lines are replaced and every other byte stays
+ * as it was, including duplicate unmanaged assignments, `export` prefixes, CRLF endings,
+ * comments, blank lines and multiline quoted values. Values are written with dotenv-safe
+ * quoting that Node's `util.parseEnv` reads back exactly. Results carry key names and
+ * statuses only, never values, so they are safe to print and log.
+ *
+ * A managed key (desired or preserved) that is assigned more than once, or that appears as
+ * an assignment-shaped line inside another key's multiline value, is refused with an error
+ * naming the key only, because readers disagree on which assignment wins.
  *
  * Check mode is read-only and reports which managed keys would be added or changed. Write
  * mode computes the same diff, then writes only when something changes. A key listed as
  * preserved with no desired value (for example a secret the seeds do not hold) is left as
- * it is and reported as kept.
+ * it is and reported as kept. The default writer is atomic (temp file, fsync, rename), keeps
+ * the destination's mode, creates new files owner-only and refuses symlinked destinations.
  *
  * Flow: desired values + preserved key names + current file -> name-only diff -> optional write.
  *
@@ -29,20 +37,36 @@
  * @see src/managed-keys.unit.test.ts - Tests for the diff, write merge and value-free output.
  */
 import fs from "node:fs";
-import path from "node:path";
-import { EnvMaterialize_parseEnvDocument, EnvMaterialize_renderDocument, } from "@gg-utils/env-materialize-core/env-document";
+import { EnvMaterializeKit_writeTextFileAtomically } from "./atomic-file.js";
+import { EnvMaterializeKit_formatEnvValue, EnvMaterializeKit_readAssignmentKey, EnvMaterializeKit_scanEnvAssignments, } from "./env-assignments.js";
 /**
- * Returns the node file system adapter used when no test double is injected.
+ * Reads a file as UTF-8, or returns null when it does not exist.
+ *
+ * @param filePath - File to read.
+ * @returns The text, or null.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_readTextFileOrNull("/app/.env.local");
+ * ```
+ */
+function EnvMaterializeKit_readTextFileOrNull(filePath) {
+    return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
+}
+/**
+ * Returns the node file system adapter used when no test double is injected. Reads use
+ * `node:fs`; writes use `EnvMaterializeKit_writeTextFileAtomically`.
  *
  * @returns File access backed by `node:fs`.
+ * @example
+ * ```typescript
+ * const fileSystem = EnvMaterializeKit_nodeManagedFileSystem();
+ * fileSystem.readTextFile("/app/.env.local");
+ * ```
  */
 export function EnvMaterializeKit_nodeManagedFileSystem() {
     return {
-        readTextFile: (filePath) => fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null,
-        writeTextFile: (filePath, content, options) => {
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, content, { encoding: "utf8", mode: options.mode });
-        },
+        readTextFile: EnvMaterializeKit_readTextFileOrNull,
+        writeTextFile: EnvMaterializeKit_writeTextFileAtomically,
     };
 }
 /**
@@ -86,53 +110,118 @@ export function EnvMaterializeKit_diffManagedKeys(options) {
     };
 }
 /**
- * Refuses values that would break the line-based env format.
+ * Indexes the single assignment of each managed key and refuses ambiguous files.
  *
- * @param desiredValues - Desired values to validate.
- * @throws Error naming the key, never the value, when a value holds a line break.
+ * @param options - Scanned assignments, lines and the managed key names.
+ * @param options.assignments - Assignments in file order.
+ * @param options.lines - Line texts of the file.
+ * @param options.managedKeys - Desired and preserved key names.
+ * @returns The assignment per managed key that is present.
+ * @throws Error naming the key, never a value, when a managed key is assigned more than once
+ * or appears as an assignment line inside a multiline value.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_indexManagedAssignments({ assignments, lines, managedKeys: new Set(["A"]) });
+ * ```
  */
-function EnvMaterializeKit_assertSingleLineValues(desiredValues) {
-    for (const [key, value] of desiredValues) {
-        if (/[\r\n]/u.test(value)) {
-            throw new Error(`[env-materialize] Value for ${key} must be a single line`);
+function EnvMaterializeKit_indexManagedAssignments(options) {
+    const byKey = new Map();
+    for (const assignment of options.assignments) {
+        if (options.managedKeys.has(assignment.key)) {
+            if (byKey.has(assignment.key)) {
+                throw new Error(`[env-materialize] Managed key ${assignment.key} is assigned more than once`);
+            }
+            byKey.set(assignment.key, assignment);
+        }
+        for (let line = assignment.startLine + 1; line <= assignment.endLine; line++) {
+            const inner = EnvMaterializeKit_readAssignmentKey(options.lines[line] ?? "");
+            if (inner !== null && options.managedKeys.has(inner.key)) {
+                throw new Error(`[env-materialize] Managed key ${inner.key} appears inside a multiline value`);
+            }
         }
     }
+    return byKey;
 }
 /**
- * Renders the next file content by changing only added and changed managed keys. Every
- * other line, including comments, quoting and unmanaged keys, is kept as it was.
+ * Renders the next file content by replacing only the lines of added and changed managed
+ * keys. Every other byte is kept: comments, blank lines, `export` prefixes, spacing,
+ * duplicate unmanaged assignments, multiline values and each line's own ending. A changed
+ * key keeps its prefix (indent, `export`, spacing around `=`) and any inline comment. Added
+ * keys are appended in sorted order using the file's line ending.
  *
  * @param options - Current content and desired values.
  * @param options.currentContent - Current file text, or null when the file is absent.
  * @param options.desiredValues - Desired values for managed keys.
  * @param options.preservedKeys - Keys left as they are when they have no desired value.
  * @returns The next content and the name-only diff.
- * @throws Error when a desired value holds a line break.
+ * @throws Error naming the key, never the value, when a value cannot be written safely, or
+ * when a managed key is assigned more than once or appears inside a multiline value.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_renderManagedEnvContent({
+ *   currentContent: "# keep\r\nA=1\r\nOTHER=x\r\n",
+ *   desiredValues: new Map([["A", "two words"]]),
+ * }).content; // "# keep\r\nA='two words'\r\nOTHER=x\r\n"
+ * ```
  */
 export function EnvMaterializeKit_renderManagedEnvContent(options) {
-    EnvMaterializeKit_assertSingleLineValues(options.desiredValues);
-    const document = EnvMaterialize_parseEnvDocument(options.currentContent ?? "");
+    const formatted = new Map();
+    for (const [key, value] of options.desiredValues) {
+        formatted.set(key, EnvMaterializeKit_formatEnvValue(key, value));
+    }
+    const currentContent = options.currentContent ?? "";
+    const scan = EnvMaterializeKit_scanEnvAssignments(currentContent);
+    const managed = EnvMaterializeKit_indexManagedAssignments({
+        assignments: scan.assignments,
+        lines: scan.lines.map((line) => line.text),
+        managedKeys: new Set([...options.desiredValues.keys(), ...(options.preservedKeys ?? [])]),
+    });
+    const currentValues = new Map();
+    for (const [key, assignment] of managed) {
+        currentValues.set(key, assignment.value);
+    }
     const diff = EnvMaterializeKit_diffManagedKeys({
-        currentValues: options.currentContent === null ? null : document.valuesByKey,
+        currentValues: options.currentContent === null ? null : currentValues,
         desiredValues: options.desiredValues,
         ...(options.preservedKeys === undefined ? {} : { preservedKeys: options.preservedKeys }),
     });
-    const updates = new Map();
-    for (const key of [...diff.added, ...diff.changed]) {
-        updates.set(key, options.desiredValues.get(key) ?? "");
-    }
-    if (updates.size === 0 && options.currentContent !== null) {
+    if (diff.added.length === 0 && diff.changed.length === 0 && options.currentContent !== null) {
         return { content: options.currentContent, diff };
     }
-    const rendered = EnvMaterialize_renderDocument({ document, valuesByKey: updates });
-    return { content: options.currentContent === null ? rendered.replace(/^\n+/u, "") : rendered, diff };
+    const replacements = new Map();
+    for (const key of diff.changed) {
+        const assignment = managed.get(key);
+        if (assignment !== undefined) {
+            replacements.set(assignment.startLine, assignment);
+        }
+    }
+    let content = "";
+    for (let index = 0; index < scan.lines.length; index++) {
+        const assignment = replacements.get(index);
+        if (assignment === undefined) {
+            const line = scan.lines[index];
+            content += (line?.text ?? "") + (line?.ending ?? "");
+            continue;
+        }
+        const last = scan.lines[assignment.endLine];
+        content += `${assignment.prefix}${formatted.get(assignment.key) ?? ""}${assignment.suffix}${last?.ending ?? ""}`;
+        index = assignment.endLine;
+    }
+    const ending = currentContent.includes("\r\n") ? "\r\n" : "\n";
+    if (diff.added.length > 0 && content.length > 0 && !content.endsWith("\n")) {
+        content += ending;
+    }
+    for (const key of diff.added) {
+        content += `${key}=${formatted.get(key) ?? ""}${ending}`;
+    }
+    return { content, diff };
 }
 /**
  * Checks a managed env file without writing anything.
  *
  * @param options - File path, desired values, preserved keys and optional file system.
  * @returns `missing`, `drift` or `unchanged`, with the name-only diff.
- * @throws Error when a desired value holds a line break, or when reading fails.
+ * @throws Error when a value cannot be written safely, a managed key is ambiguous, or reading fails.
  * @example
  * ```typescript
  * EnvMaterializeKit_checkManagedEnvFile({ filePath: ".env.local", desiredValues: new Map() });
@@ -160,7 +249,8 @@ export function EnvMaterializeKit_checkManagedEnvFile(options) {
  *
  * @param options - File path, desired values, preserved keys and optional file system.
  * @returns `created`, `updated` or `unchanged`, with the name-only diff.
- * @throws Error when a desired value holds a line break, or when reading or writing fails.
+ * @throws Error when a value cannot be written safely, a managed key is ambiguous, the
+ * destination is a symlink, or reading or writing fails.
  * @example
  * ```typescript
  * EnvMaterializeKit_writeManagedEnvFile({

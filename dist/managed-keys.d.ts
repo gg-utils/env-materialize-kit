@@ -3,13 +3,21 @@
  *
  * Many env files mix keys a tool owns (hostnames, ports, origins) with keys it must not
  * touch (database URLs, secrets typed by hand). This module compares and writes only the
- * managed keys. Every other line stays byte for byte. Results carry key names and statuses
- * only, never values, so they are safe to print and log.
+ * managed keys: each managed assignment's own lines are replaced and every other byte stays
+ * as it was, including duplicate unmanaged assignments, `export` prefixes, CRLF endings,
+ * comments, blank lines and multiline quoted values. Values are written with dotenv-safe
+ * quoting that Node's `util.parseEnv` reads back exactly. Results carry key names and
+ * statuses only, never values, so they are safe to print and log.
+ *
+ * A managed key (desired or preserved) that is assigned more than once, or that appears as
+ * an assignment-shaped line inside another key's multiline value, is refused with an error
+ * naming the key only, because readers disagree on which assignment wins.
  *
  * Check mode is read-only and reports which managed keys would be added or changed. Write
  * mode computes the same diff, then writes only when something changes. A key listed as
  * preserved with no desired value (for example a secret the seeds do not hold) is left as
- * it is and reported as kept.
+ * it is and reported as kept. The default writer is atomic (temp file, fsync, rename), keeps
+ * the destination's mode, creates new files owner-only and refuses symlinked destinations.
  *
  * Flow: desired values + preserved key names + current file -> name-only diff -> optional write.
  *
@@ -32,7 +40,7 @@
 export type EnvMaterializeKit_ManagedFileSystem = {
     /** Returns the UTF-8 text of a file, or null when it does not exist. */
     readTextFile: (filePath: string) => string | null;
-    /** Writes UTF-8 text, creating parent folders; `mode` applies only when creating the file. */
+    /** Writes UTF-8 text, creating parent folders; `mode` applies only when creating the file. The default is atomic and refuses symlinks. */
     writeTextFile: (filePath: string, content: string, options: {
         mode: number;
     }) => void;
@@ -73,9 +81,15 @@ export type EnvMaterializeKit_ManagedEnvFileOptions = {
     fileSystem?: EnvMaterializeKit_ManagedFileSystem;
 };
 /**
- * Returns the node file system adapter used when no test double is injected.
+ * Returns the node file system adapter used when no test double is injected. Reads use
+ * `node:fs`; writes use `EnvMaterializeKit_writeTextFileAtomically`.
  *
  * @returns File access backed by `node:fs`.
+ * @example
+ * ```typescript
+ * const fileSystem = EnvMaterializeKit_nodeManagedFileSystem();
+ * fileSystem.readTextFile("/app/.env.local");
+ * ```
  */
 export declare function EnvMaterializeKit_nodeManagedFileSystem(): EnvMaterializeKit_ManagedFileSystem;
 /**
@@ -100,15 +114,26 @@ export declare function EnvMaterializeKit_diffManagedKeys(options: {
     preservedKeys?: readonly string[];
 }): EnvMaterializeKit_ManagedKeyDiff;
 /**
- * Renders the next file content by changing only added and changed managed keys. Every
- * other line, including comments, quoting and unmanaged keys, is kept as it was.
+ * Renders the next file content by replacing only the lines of added and changed managed
+ * keys. Every other byte is kept: comments, blank lines, `export` prefixes, spacing,
+ * duplicate unmanaged assignments, multiline values and each line's own ending. A changed
+ * key keeps its prefix (indent, `export`, spacing around `=`) and any inline comment. Added
+ * keys are appended in sorted order using the file's line ending.
  *
  * @param options - Current content and desired values.
  * @param options.currentContent - Current file text, or null when the file is absent.
  * @param options.desiredValues - Desired values for managed keys.
  * @param options.preservedKeys - Keys left as they are when they have no desired value.
  * @returns The next content and the name-only diff.
- * @throws Error when a desired value holds a line break.
+ * @throws Error naming the key, never the value, when a value cannot be written safely, or
+ * when a managed key is assigned more than once or appears inside a multiline value.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_renderManagedEnvContent({
+ *   currentContent: "# keep\r\nA=1\r\nOTHER=x\r\n",
+ *   desiredValues: new Map([["A", "two words"]]),
+ * }).content; // "# keep\r\nA='two words'\r\nOTHER=x\r\n"
+ * ```
  */
 export declare function EnvMaterializeKit_renderManagedEnvContent(options: {
     currentContent: string | null;
@@ -123,7 +148,7 @@ export declare function EnvMaterializeKit_renderManagedEnvContent(options: {
  *
  * @param options - File path, desired values, preserved keys and optional file system.
  * @returns `missing`, `drift` or `unchanged`, with the name-only diff.
- * @throws Error when a desired value holds a line break, or when reading fails.
+ * @throws Error when a value cannot be written safely, a managed key is ambiguous, or reading fails.
  * @example
  * ```typescript
  * EnvMaterializeKit_checkManagedEnvFile({ filePath: ".env.local", desiredValues: new Map() });
@@ -136,7 +161,8 @@ export declare function EnvMaterializeKit_checkManagedEnvFile(options: EnvMateri
  *
  * @param options - File path, desired values, preserved keys and optional file system.
  * @returns `created`, `updated` or `unchanged`, with the name-only diff.
- * @throws Error when a desired value holds a line break, or when reading or writing fails.
+ * @throws Error when a value cannot be written safely, a managed key is ambiguous, the
+ * destination is a symlink, or reading or writing fails.
  * @example
  * ```typescript
  * EnvMaterializeKit_writeManagedEnvFile({

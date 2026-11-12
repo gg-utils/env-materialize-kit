@@ -31,9 +31,17 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { EnvMaterialize_parseEnvDocument } from "@gg-utils/env-materialize-core/env-document";
+import { parseEnv } from "node:util";
 import { EnvMaterializeKit_resolveMachineProfile } from "./seed-files.js";
-/** Error raised when a required seed layer is absent. Its message names paths, never values. */
+/**
+ * Error raised when a required seed layer is absent. Its message names paths, never values.
+ *
+ * @example
+ * ```typescript
+ * try { EnvMaterializeKit_loadSeedLayers({ source, layers }); }
+ * catch (error) { if (error instanceof EnvMaterializeKit_MissingSeedLayerError) console.error(error.layerId); }
+ * ```
+ */
 export class EnvMaterializeKit_MissingSeedLayerError extends Error {
     /** Id of the missing layer. */
     layerId;
@@ -53,44 +61,138 @@ export class EnvMaterializeKit_MissingSeedLayerError extends Error {
     }
 }
 /**
+ * Reads a file as UTF-8, or returns null when it does not exist.
+ *
+ * @param absolutePath - File to read.
+ * @returns The text, or null.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_readSeedTextFile("/workspace/.seeds/environments/local.env");
+ * ```
+ */
+function EnvMaterializeKit_readSeedTextFile(absolutePath) {
+    return fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, "utf8") : null;
+}
+/**
+ * Lists the sorted names of non-hidden child folders. Symlinked folders are not listed.
+ *
+ * @param absolutePath - Folder to list.
+ * @returns Folder names, or an empty list when the folder is absent.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_listSeedDirectoryNames("/workspace/.seeds/machines");
+ * ```
+ */
+function EnvMaterializeKit_listSeedDirectoryNames(absolutePath) {
+    return fs.existsSync(absolutePath)
+        ? fs
+            .readdirSync(absolutePath, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+            .map((entry) => entry.name)
+            .sort()
+        : [];
+}
+/**
+ * Resolves every symlink in a path. For a path that does not exist, resolves the nearest
+ * existing ancestor and appends the remaining segments.
+ *
+ * @param absolutePath - Absolute path.
+ * @returns The canonical path.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_realPathOfNearestExisting("/tmp/seeds/missing.env"); // "/private/tmp/seeds/missing.env" on macOS
+ * ```
+ */
+export function EnvMaterializeKit_realPathOfNearestExisting(absolutePath) {
+    const pending = [];
+    let current = path.resolve(absolutePath);
+    for (;;) {
+        try {
+            return path.join(fs.realpathSync.native(current), ...pending.reverse());
+        }
+        catch (error) {
+            const code = error.code;
+            const parent = path.dirname(current);
+            if ((code !== "ENOENT" && code !== "ENOTDIR") || parent === current) {
+                throw error;
+            }
+            pending.push(path.basename(current));
+            current = parent;
+        }
+    }
+}
+/**
  * Returns the node file system adapter used when no test double is injected.
  *
- * @returns File access backed by `node:fs`.
+ * @returns File access backed by `node:fs`, including symlink resolution.
+ * @example
+ * ```typescript
+ * const fileSystem = EnvMaterializeKit_nodeSeedFileSystem();
+ * fileSystem.listDirectoryNames("/workspace/.seeds/machines");
+ * ```
  */
 export function EnvMaterializeKit_nodeSeedFileSystem() {
     return {
-        readTextFile: (absolutePath) => fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, "utf8") : null,
-        listDirectoryNames: (absolutePath) => fs.existsSync(absolutePath)
-            ? fs
-                .readdirSync(absolutePath, { withFileTypes: true })
-                .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-                .map((entry) => entry.name)
-                .sort()
-            : [],
+        readTextFile: EnvMaterializeKit_readSeedTextFile,
+        listDirectoryNames: EnvMaterializeKit_listSeedDirectoryNames,
+        realPath: EnvMaterializeKit_realPathOfNearestExisting,
     };
 }
 /**
- * Resolves a source-relative path and refuses paths that escape the source root, so a
- * layout typo can never read a file outside the seed folder.
+ * Tells whether a path is the root itself or lies inside it.
  *
- * @param rootPath - Absolute root of the source.
- * @param relativePath - Path relative to the root.
- * @returns The absolute path inside the root.
- * @throws Error when the path is absolute or escapes the root.
+ * @param rootPath - Absolute root.
+ * @param candidate - Absolute path to test.
+ * @returns True when `candidate` is inside `rootPath`.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_isPathInside("/seeds", "/seeds/a.env"); // true
+ * EnvMaterializeKit_isPathInside("/seeds", "/seeds-other/a.env"); // false
+ * ```
  */
-function EnvMaterializeKit_resolveInsideRoot(rootPath, relativePath) {
+export function EnvMaterializeKit_isPathInside(rootPath, candidate) {
+    const relative = path.relative(rootPath, candidate);
+    return (relative === "" ||
+        (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)));
+}
+/**
+ * Resolves a source-relative path and refuses paths that escape the source root, both
+ * lexically and after resolving symlinks, so neither a layout typo nor a symlink can read a
+ * file outside the seed folder. The check runs before anything is read.
+ *
+ * @param options - Root, relative path and file access.
+ * @param options.rootPath - Absolute root of the source.
+ * @param options.relativePath - Path relative to the root.
+ * @param options.fileSystem - File access whose `realPath` resolves symlinks.
+ * @returns The absolute path inside the root.
+ * @throws Error when the path is absolute or escapes the root, lexically or through a symlink.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_resolveInsideRoot({ rootPath: "/seeds", relativePath: "a.env", fileSystem });
+ * ```
+ */
+function EnvMaterializeKit_resolveInsideRoot(options) {
+    const { rootPath, relativePath, fileSystem } = options;
     if (path.isAbsolute(relativePath)) {
         throw new Error(`[env-materialize] Seed path must be relative: ${relativePath}`);
     }
     const resolved = path.resolve(rootPath, relativePath);
-    const relative = path.relative(rootPath, resolved);
-    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    if (!EnvMaterializeKit_isPathInside(rootPath, resolved)) {
         throw new Error(`[env-materialize] Seed path escapes the source root: ${relativePath}`);
+    }
+    if (fileSystem.realPath !== undefined) {
+        const realRoot = fileSystem.realPath(rootPath);
+        const realTarget = fileSystem.realPath(resolved);
+        if (!EnvMaterializeKit_isPathInside(realRoot, realTarget)) {
+            throw new Error(`[env-materialize] Seed path resolves outside the source root through a symlink: ${relativePath}`);
+        }
     }
     return resolved;
 }
 /**
- * Creates a seed source backed by a folder on this machine.
+ * Creates a seed source backed by a folder on this machine. Seed files are read with Node's
+ * dotenv grammar (`util.parseEnv`). Every path is checked against the root before reading,
+ * lexically and with symlinks resolved.
  *
  * @param options - The folder and optional file system double.
  * @param options.rootPath - Absolute path of the seed folder.
@@ -109,10 +211,17 @@ export function EnvMaterializeKit_createDirectorySeedSource(options) {
         kind: "directory",
         description: rootPath,
         readEnvFile: (relativePath) => {
-            const text = fileSystem.readTextFile(EnvMaterializeKit_resolveInsideRoot(rootPath, relativePath));
-            return text === null ? null : EnvMaterialize_parseEnvDocument(text).valuesByKey;
+            const text = fileSystem.readTextFile(EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem }));
+            if (text === null) {
+                return null;
+            }
+            const values = new Map();
+            for (const [key, value] of Object.entries(parseEnv(text))) {
+                values.set(key, value ?? "");
+            }
+            return values;
         },
-        listDirectories: (relativePath) => fileSystem.listDirectoryNames(EnvMaterializeKit_resolveInsideRoot(rootPath, relativePath)),
+        listDirectories: (relativePath) => fileSystem.listDirectoryNames(EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem })),
     };
 }
 /**
@@ -149,6 +258,14 @@ export function EnvMaterializeKit_createSeedSource(options) {
  * @param options.layers - Layers in precedence order, lowest first.
  * @returns Loaded layers in the same order.
  * @throws EnvMaterializeKit_MissingSeedLayerError when a required layer is absent.
+ * @example
+ * ```typescript
+ * const layers = EnvMaterializeKit_loadSeedLayers({
+ *   source,
+ *   layers: [{ id: "environment", relativePath: "environments/local.env", required: true }],
+ * });
+ * layers[0]?.present; // true
+ * ```
  */
 export function EnvMaterializeKit_loadSeedLayers(options) {
     return options.layers.map((definition) => {
@@ -174,6 +291,15 @@ export function EnvMaterializeKit_loadSeedLayers(options) {
  *
  * @param layers - Loaded layers, lowest precedence first.
  * @returns Final values and the id of the layer that supplied each one.
+ * @example
+ * ```typescript
+ * const merged = EnvMaterializeKit_mergeSeedLayers([
+ *   { id: "base", relativePath: "base.env", present: true, valuesByKey: new Map([["A", "1"], ["B", "2"]]) },
+ *   { id: "machine", relativePath: "m.env", present: true, valuesByKey: new Map([["A", "3"], ["B", ""]]) },
+ * ]);
+ * merged.valuesByKey; // Map { "A" => "3", "B" => "2" }
+ * merged.layerIdByKey.get("A"); // "machine"
+ * ```
  */
 export function EnvMaterializeKit_mergeSeedLayers(layers) {
     const valuesByKey = new Map();
@@ -199,6 +325,11 @@ export function EnvMaterializeKit_mergeSeedLayers(layers) {
  * @param options.explicitMachineProfile - Profile chosen by the caller, if any.
  * @returns The selected profile and every profile found.
  * @throws Error when the explicit profile has no folder, so a typo is not silently ignored.
+ * @example
+ * ```typescript
+ * EnvMaterializeKit_selectSeedMachineProfile({ source, machineOverridesPath: "machines" });
+ * // { machineProfile: "laptop", machineProfileNames: ["laptop"] } when only one folder exists
+ * ```
  */
 export function EnvMaterializeKit_selectSeedMachineProfile(options) {
     const machineProfileNames = options.source.listDirectories(options.machineOverridesPath);

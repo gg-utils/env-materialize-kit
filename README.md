@@ -48,6 +48,8 @@ Skip this package when you only need low-level `.env` parsing; use
 | `@gg-utils/env-materialize-kit/seed-sources` | Pluggable seed sources and ordered seed layers with machine overrides. |
 | `@gg-utils/env-materialize-kit/value-table` | Table-driven, pure value resolution. |
 | `@gg-utils/env-materialize-kit/managed-keys` | Key-level check and write for partly managed env files, with name-only output. |
+| `@gg-utils/env-materialize-kit/env-assignments` | Byte-preserving dotenv scanning and dotenv-safe value quoting (Node `util.parseEnv` grammar). |
+| `@gg-utils/env-materialize-kit/atomic-file` | Atomic, symlink-refusing text file writes that keep the destination's mode. |
 | `@gg-utils/env-materialize-kit/ink-app` | Reusable Ink UI renderer. |
 | `@gg-utils/env-materialize-kit/opentui-app` | Reusable OpenTUI UI renderer. |
 | `@gg-utils/env-materialize-kit/ui-launcher` | Shared UI launcher flag parsing and spawn helpers. |
@@ -218,15 +220,24 @@ These three modules let an adapter keep its own code to data tables.
   its layout as ordered layers (for example a logical environment, shared defaults, a machine override).
   `EnvMaterializeKit_loadSeedLayers` reads them and `EnvMaterializeKit_mergeSeedLayers` applies them in order:
   later layers win, blank values inherit, and each key records the layer that supplied it.
-  `EnvMaterializeKit_selectSeedMachineProfile` picks the machine override folder. Seed paths cannot escape the
-  source root.
+  `EnvMaterializeKit_selectSeedMachineProfile` picks the machine override folder. Seed files are read with Node's
+  dotenv grammar (`util.parseEnv`). Seed paths cannot escape the source root: every path is checked lexically and
+  again with symlinks resolved, before anything is read.
 - `value-table`: `EnvMaterializeKit_resolveValueTable` resolves rows of `{ key, sources, required, secret }`.
   Sources are a seed key, a pure derivation from earlier rows, or a default. It never reads or patches
   `process.env`.
 - `managed-keys`: `EnvMaterializeKit_checkManagedEnvFile` and `EnvMaterializeKit_writeManagedEnvFile` compare and
-  write only the managed keys of a file. Other lines stay byte for byte. Preserved keys with no desired value, such
-  as secrets the seeds do not hold, are kept. Results and `EnvMaterializeKit_formatManagedKeyResult` carry key
-  names and statuses only. New files are created with owner-only permissions.
+  write only the managed keys of a file. Only each managed assignment's own lines change; every other byte stays,
+  including duplicate unmanaged assignments, `export` prefixes, CRLF endings, comments, blank lines and multiline
+  quoted values. A managed key assigned more than once, or found inside another key's multiline value, is refused
+  with an error naming the key only. Values are quoted so Node's `util.parseEnv` reads them back exactly (`#`,
+  quotes, line breaks, `=`, leading and trailing spaces); a value no quoting can carry is refused. Preserved keys
+  with no desired value, such as secrets the seeds do not hold, are kept. Results and
+  `EnvMaterializeKit_formatManagedKeyResult` carry key names and statuses only.
+- `atomic-file`: `EnvMaterializeKit_writeTextFileAtomically` writes a temp file beside the destination, fsyncs it
+  and renames it over the destination, so a failure leaves the old file intact. The destination keeps its mode; new
+  files are owner-only. A destination that is a symlink or not a regular file is refused. `managed-keys` writes
+  through it by default.
 
 ```js
 import { EnvMaterializeKit_createDirectorySeedSource, EnvMaterializeKit_loadSeedLayers,

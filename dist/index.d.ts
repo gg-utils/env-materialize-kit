@@ -47,3 +47,5 @@ export * from "./check-keys.js";
 export * from "./managed-keys.js";
 export * from "./seed-sources.js";
 export * from "./value-table.js";
+export * from "./atomic-file.js";
+export * from "./env-assignments.js";
