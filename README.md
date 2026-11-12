@@ -10,7 +10,7 @@ and command names belong in the consuming adapter.
 ## Install
 
 ```bash
-npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1
+npm install @gg-utils/env-materialize-kit@git+https://github.com/gg-utils/env-materialize-kit.git#v0.4.0
 ```
 
 Package JSON form:
@@ -18,7 +18,7 @@ Package JSON form:
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.4.0"
   }
 }
 ```
@@ -45,6 +45,12 @@ Skip this package when you only need low-level `.env` parsing; use
 | `@gg-utils/env-materialize-kit/target-files` | Config-driven target resolution. |
 | `@gg-utils/env-materialize-kit/target-runner` | Iterate targets and connect render/write callbacks. |
 | `@gg-utils/env-materialize-kit/write-target-file` | Apply write and sync policies. |
+| `@gg-utils/env-materialize-kit/seed-sources` | Pluggable seed sources and ordered seed layers with machine overrides. |
+| `@gg-utils/env-materialize-kit/value-table` | Table-driven, pure value resolution. |
+| `@gg-utils/env-materialize-kit/managed-keys` | Key-level check and write for partly managed env files, with name-only output. |
+| `@gg-utils/env-materialize-kit/env-assignments` | Byte-preserving dotenv scanning and dotenv-safe value quoting (Node `util.parseEnv` grammar). |
+| `@gg-utils/env-materialize-kit/atomic-file` | Crash-atomic, symlink-refusing text file writes that keep the destination's mode. |
+| `@gg-utils/env-materialize-kit/contained-paths` | Reads that stay inside a root of a trusted tree and refuse a single symlink swap, and the parent-folder symlink check. |
 | `@gg-utils/env-materialize-kit/ink-app` | Reusable Ink UI renderer. |
 | `@gg-utils/env-materialize-kit/opentui-app` | Reusable OpenTUI UI renderer. |
 | `@gg-utils/env-materialize-kit/ui-launcher` | Shared UI launcher flag parsing and spawn helpers. |
@@ -138,7 +144,7 @@ Requires Node `>=22.0.0 <27`. Built ESM JavaScript and declarations are included
 ```json
 {
   "dependencies": {
-    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.3.1"
+    "@gg-utils/env-materialize-kit": "git+https://github.com/gg-utils/env-materialize-kit.git#v0.4.0"
   }
 }
 ```
@@ -204,3 +210,68 @@ The core scanner consumes one byte at a time without constructing value strings.
 export, comments, blank lines, CRLF, quoted multiline values and escaped double quotes.
 Invalid rows are ignored; an unterminated quote consumes the remainder. This checks presence
 only, including empty assignments, and does not validate value correctness.
+
+### Seed sources, value tables and managed keys (v0.4.0)
+
+These three modules let an adapter keep its own code to data tables.
+
+- `seed-sources`: a seed source is where private seed files live. `EnvMaterializeKit_createDirectorySeedSource`
+  reads a folder on this machine. `EnvMaterializeKit_createSeedSource` builds a source from config through a
+  registry of factories per kind, so moving seeds to another kind of store is a config change. An adapter lists
+  its layout as ordered layers (for example a logical environment, shared defaults, a machine override).
+  `EnvMaterializeKit_loadSeedLayers` reads them and `EnvMaterializeKit_mergeSeedLayers` applies them in order:
+  later layers win, blank values inherit, and each key records the layer that supplied it.
+  `EnvMaterializeKit_selectSeedMachineProfile` picks the machine override folder. Seed files are read with Node's
+  dotenv grammar (`util.parseEnv`). Seed paths cannot escape the source root: every path is checked lexically and
+  again with symlinks resolved, before anything is read. With the default node adapter the read also refuses a
+  folder or file swapped once for a symlink between that check and the read (see `contained-paths`). A custom
+  `fileSystem` port that reads real files should set `readContainedTextFile` to
+  `EnvMaterializeKit_readContainedTextFile` to get the same checks. The seed folder must be a trusted tree (see
+  the trust model below).
+- `contained-paths`: `EnvMaterializeKit_readContainedTextFile` opens the canonical in-root path with `O_NOFOLLOW`,
+  then, holding the descriptor, checks with `lstat` that no folder on that path is a symlink and that the
+  descriptor has the same device and inode as the in-root path. Only then does it read, through that descriptor,
+  and it always closes it. Node has no `openat`, so it re-checks after the open rather than walking from a root
+  descriptor. Refusals name the relative path only. `EnvMaterializeKit_assertNoSymlinkedParents` is the
+  parent-folder check the writer uses.
+  **Trust model:** the tree must be trusted, meaning no other actor with the same file system permissions mutates
+  it concurrently. The checks catch a stray or one-shot symlink swap. They run one after another, so a concurrent
+  actor that swaps a folder several times, timed between them, can still lead a read outside the root or expose
+  outside folder names in a listing; a test documents this. They are not a sandbox. If Node gains a native
+  `openat` path, real directory handles can replace these checks.
+- `value-table`: `EnvMaterializeKit_resolveValueTable` resolves rows of `{ key, sources, required, secret }`.
+  Sources are a seed key, a pure derivation from earlier rows, or a default. It never reads or patches
+  `process.env`.
+- `managed-keys`: `EnvMaterializeKit_checkManagedEnvFile` and `EnvMaterializeKit_writeManagedEnvFile` compare and
+  write only the managed keys of a file. Only each managed assignment's own lines change; every other byte stays,
+  including duplicate unmanaged assignments, `export` prefixes, CRLF endings, comments, blank lines and multiline
+  quoted values. A managed key assigned more than once, or found inside another key's multiline value, is refused
+  with an error naming the key only. Values are quoted so Node's `util.parseEnv` reads them back exactly (`#`,
+  quotes, line breaks, `=`, leading and trailing spaces); a value no quoting can carry is refused. Preserved keys
+  with no desired value, such as secrets the seeds do not hold, are kept. Results and
+  `EnvMaterializeKit_formatManagedKeyResult` carry key names and statuses only.
+- `atomic-file`: `EnvMaterializeKit_writeTextFileAtomically` writes a temp file beside the destination, fsyncs it
+  and renames it over the destination, so a crash or failure leaves the old file intact ("atomic" means this crash
+  guarantee, not protection against concurrent changes). The destination keeps its mode; new
+  files are owner-only. A destination that is a symlink or not a regular file is refused. `managed-keys` writes
+  through it by default.
+  Parent folder policy: a write is refused when any folder between the destination's root and the file is a
+  symlink. Pass `rootPath` (such as the checkout) to say where the root is; the root itself may be a symlink.
+  Without `rootPath` every ancestor is checked and only top-level system aliases directly under `/` (such as
+  `/tmp` or `/var` on macOS) are tolerated. Pass `allowSymlinkedParents: true` to opt out; the default is false.
+  The check runs before the folders are created, after, and again just before the rename. It is point-in-time and
+  assumes the same trusted tree as `contained-paths`.
+
+```js
+import { EnvMaterializeKit_createDirectorySeedSource, EnvMaterializeKit_loadSeedLayers,
+  EnvMaterializeKit_mergeSeedLayers } from "@gg-utils/env-materialize-kit/seed-sources";
+import { EnvMaterializeKit_resolveValueTable } from "@gg-utils/env-materialize-kit/value-table";
+import { EnvMaterializeKit_checkManagedEnvFile, EnvMaterializeKit_formatManagedKeyResult }
+  from "@gg-utils/env-materialize-kit/managed-keys";
+
+const source = EnvMaterializeKit_createDirectorySeedSource({ rootPath: seedFolder });
+const seeds = EnvMaterializeKit_mergeSeedLayers(EnvMaterializeKit_loadSeedLayers({ source, layers }));
+const table = EnvMaterializeKit_resolveValueTable({ rows, seedValues: seeds.valuesByKey, context });
+const result = EnvMaterializeKit_checkManagedEnvFile({ filePath, desiredValues: table.valuesByKey });
+for (const line of EnvMaterializeKit_formatManagedKeyResult(result)) console.log(line);
+```
