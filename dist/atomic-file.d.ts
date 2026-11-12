@@ -8,7 +8,15 @@
  * symlink, or anything other than a regular file, is refused, so a write can never be
  * redirected to another file.
  *
- * Flow: validate destination -> temp file (exclusive) -> write + fsync -> rename -> fsync folder.
+ * Parent folder policy: by default a write is refused when any folder between the
+ * destination's root and the file is a symlink, so a swapped folder cannot redirect the
+ * write elsewhere. The root is `rootPath` when given (the root itself may be a symlink);
+ * without it every ancestor is checked and only top-level system aliases such as `/tmp` or
+ * `/var` on macOS are tolerated. Pass `allowSymlinkedParents: true` to opt out. The check runs
+ * before the parent folders are created, after, and again just before the rename.
+ *
+ * Flow: validate destination and parents -> temp file (exclusive) -> write + fsync -> check
+ * parents -> rename -> fsync folder.
  *
  * @example
  * ```typescript
@@ -24,6 +32,14 @@ import fs from "node:fs";
 export type EnvMaterializeKit_AtomicWriteOptions = {
     /** Permission bits for a new file. An existing file keeps its own. Defaults to 0o600. */
     mode?: number;
+    /**
+     * Root the destination belongs to, such as a checkout. Folders strictly below it must not
+     * be symlinks; the root itself may be one. When omitted, every ancestor is checked except
+     * top-level system aliases directly under `/`.
+     */
+    rootPath?: string;
+    /** Allows symlinked parent folders. Defaults to false, which refuses them. */
+    allowSymlinkedParents?: boolean;
 };
 /** File operations the writer uses, injectable so tests can make one of them fail. */
 export type EnvMaterializeKit_AtomicFileOperations = {
@@ -64,13 +80,16 @@ export declare function EnvMaterializeKit_nodeAtomicFileOperations(): EnvMateria
  *
  * @param filePath - Destination path. Parent folders are created when absent.
  * @param content - UTF-8 text to write.
- * @param options - Mode for a new file.
+ * Unless `options.allowSymlinkedParents` is true, the write is refused when a folder between
+ * `options.rootPath` (or the top of the file system) and the file is a symlink.
+ *
+ * @param options - Mode for a new file, the destination's root and the parent folder policy.
  * @param operations - File operations; defaults to `node:fs`.
- * @throws Error naming the path when the destination is a symlink or not a regular file, or
- * when any step fails. The temp file is removed on failure and the destination is untouched.
+ * @throws Error naming the path when the destination is a symlink or not a regular file,
+ * when a parent folder is a symlink and that is not allowed, or when any step fails. The temp file is removed on failure and the destination is untouched.
  * @example
  * ```typescript
- * EnvMaterializeKit_writeTextFileAtomically("/app/.env.local", "A=1\n", { mode: 0o600 });
+ * EnvMaterializeKit_writeTextFileAtomically("/app/.env.local", "A=1\n", { mode: 0o600, rootPath: "/app" });
  * ```
  */
 export declare function EnvMaterializeKit_writeTextFileAtomically(filePath: string, content: string, options?: EnvMaterializeKit_AtomicWriteOptions, operations?: EnvMaterializeKit_AtomicFileOperations): void;

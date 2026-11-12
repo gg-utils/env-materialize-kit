@@ -35,7 +35,16 @@ import path from "node:path";
 
 import { parseEnv } from "node:util";
 
+import {
+  type EnvMaterializeKit_ContainedReadOptions,
+  type EnvMaterializeKit_ContainmentHooks,
+  EnvMaterializeKit_isPathInside,
+  EnvMaterializeKit_readContainedTextFile,
+  EnvMaterializeKit_realPathOfNearestExisting,
+} from "./contained-paths.js";
 import { EnvMaterializeKit_resolveMachineProfile } from "./seed-files.js";
+
+export { EnvMaterializeKit_isPathInside, EnvMaterializeKit_realPathOfNearestExisting };
 
 /** Minimal file access a directory seed source needs, injectable so tests need no disk. */
 export type EnvMaterializeKit_SeedFileSystem = {
@@ -50,6 +59,13 @@ export type EnvMaterializeKit_SeedFileSystem = {
    * is treated as having no symlinks.
    */
   realPath?: (absolutePath: string) => string;
+  /**
+   * Reads a file that must stay inside a root, holding against a folder or file swapped for
+   * a symlink during the read (see `EnvMaterializeKit_readContainedTextFile`). When present,
+   * seed reads use it instead of `readTextFile`. The node adapter provides it; a custom port
+   * that reads real files should pass `EnvMaterializeKit_readContainedTextFile` here.
+   */
+  readContainedTextFile?: (options: EnvMaterializeKit_ContainedReadOptions) => string | null;
 };
 
 /**
@@ -176,35 +192,6 @@ function EnvMaterializeKit_listSeedDirectoryNames(absolutePath: string): string[
 }
 
 /**
- * Resolves every symlink in a path. For a path that does not exist, resolves the nearest
- * existing ancestor and appends the remaining segments.
- *
- * @param absolutePath - Absolute path.
- * @returns The canonical path.
- * @example
- * ```typescript
- * EnvMaterializeKit_realPathOfNearestExisting("/tmp/seeds/missing.env"); // "/private/tmp/seeds/missing.env" on macOS
- * ```
- */
-export function EnvMaterializeKit_realPathOfNearestExisting(absolutePath: string): string {
-  const pending: string[] = [];
-  let current = path.resolve(absolutePath);
-  for (;;) {
-    try {
-      return path.join(fs.realpathSync.native(current), ...pending.reverse());
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      const parent = path.dirname(current);
-      if ((code !== "ENOENT" && code !== "ENOTDIR") || parent === current) {
-        throw error;
-      }
-      pending.push(path.basename(current));
-      current = parent;
-    }
-  }
-}
-
-/**
  * Returns the node file system adapter used when no test double is injected.
  *
  * @returns File access backed by `node:fs`, including symlink resolution.
@@ -219,27 +206,8 @@ export function EnvMaterializeKit_nodeSeedFileSystem(): EnvMaterializeKit_SeedFi
     readTextFile: EnvMaterializeKit_readSeedTextFile,
     listDirectoryNames: EnvMaterializeKit_listSeedDirectoryNames,
     realPath: EnvMaterializeKit_realPathOfNearestExisting,
+    readContainedTextFile: EnvMaterializeKit_readContainedTextFile,
   };
-}
-
-/**
- * Tells whether a path is the root itself or lies inside it.
- *
- * @param rootPath - Absolute root.
- * @param candidate - Absolute path to test.
- * @returns True when `candidate` is inside `rootPath`.
- * @example
- * ```typescript
- * EnvMaterializeKit_isPathInside("/seeds", "/seeds/a.env"); // true
- * EnvMaterializeKit_isPathInside("/seeds", "/seeds-other/a.env"); // false
- * ```
- */
-export function EnvMaterializeKit_isPathInside(rootPath: string, candidate: string): boolean {
-  const relative = path.relative(rootPath, candidate);
-  return (
-    relative === "" ||
-    (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
-  );
 }
 
 /**
@@ -286,11 +254,14 @@ function EnvMaterializeKit_resolveInsideRoot(options: {
 /**
  * Creates a seed source backed by a folder on this machine. Seed files are read with Node's
  * dotenv grammar (`util.parseEnv`). Every path is checked against the root before reading,
- * lexically and with symlinks resolved.
+ * lexically and with symlinks resolved. With the node adapter (the default), reads also hold
+ * against a folder or file swapped for a symlink between the check and the read, and a
+ * listing is checked again after it was taken.
  *
  * @param options - The folder and optional file system double.
  * @param options.rootPath - Absolute path of the seed folder.
  * @param options.fileSystem - File access; defaults to `node:fs`.
+ * @param options.containmentHooks - Test seams passed to contained reads; leave out in real use.
  * @returns A seed source of kind `directory`.
  * @example
  * ```typescript
@@ -301,16 +272,24 @@ function EnvMaterializeKit_resolveInsideRoot(options: {
 export function EnvMaterializeKit_createDirectorySeedSource(options: {
   rootPath: string;
   fileSystem?: EnvMaterializeKit_SeedFileSystem;
+  containmentHooks?: EnvMaterializeKit_ContainmentHooks;
 }): EnvMaterializeKit_SeedSource {
   const fileSystem = options.fileSystem ?? EnvMaterializeKit_nodeSeedFileSystem();
   const rootPath = path.resolve(options.rootPath);
+  const { containmentHooks } = options;
   return {
     kind: "directory",
     description: rootPath,
     readEnvFile: (relativePath) => {
-      const text = fileSystem.readTextFile(
-        EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem }),
-      );
+      const resolved = EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem });
+      const text =
+        fileSystem.readContainedTextFile === undefined
+          ? fileSystem.readTextFile(resolved)
+          : fileSystem.readContainedTextFile({
+              rootPath,
+              relativePath,
+              ...(containmentHooks === undefined ? {} : { hooks: containmentHooks }),
+            });
       if (text === null) {
         return null;
       }
@@ -320,10 +299,12 @@ export function EnvMaterializeKit_createDirectorySeedSource(options: {
       }
       return values;
     },
-    listDirectories: (relativePath) =>
-      fileSystem.listDirectoryNames(
-        EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem }),
-      ),
+    listDirectories: (relativePath) => {
+      const resolved = EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem });
+      const names = fileSystem.listDirectoryNames(resolved);
+      EnvMaterializeKit_resolveInsideRoot({ rootPath, relativePath, fileSystem });
+      return names;
+    },
   };
 }
 

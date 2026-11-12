@@ -49,3 +49,4 @@ export * from "./seed-sources.js";
 export * from "./value-table.js";
 export * from "./atomic-file.js";
 export * from "./env-assignments.js";
+export { EnvMaterializeKit_assertNoSymlinkedParents, EnvMaterializeKit_readContainedTextFile, } from "./contained-paths.js";

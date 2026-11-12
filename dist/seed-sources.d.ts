@@ -29,6 +29,8 @@
  * @see src/value-table.ts - Resolves rendered keys from the merged seed values.
  * @see src/seed-sources.unit.test.ts - Tests for sources, layering and machine profiles.
  */
+import { type EnvMaterializeKit_ContainedReadOptions, type EnvMaterializeKit_ContainmentHooks, EnvMaterializeKit_isPathInside, EnvMaterializeKit_realPathOfNearestExisting } from "./contained-paths.js";
+export { EnvMaterializeKit_isPathInside, EnvMaterializeKit_realPathOfNearestExisting };
 /** Minimal file access a directory seed source needs, injectable so tests need no disk. */
 export type EnvMaterializeKit_SeedFileSystem = {
     /** Returns the UTF-8 text of a file, or null when the file does not exist. */
@@ -42,6 +44,13 @@ export type EnvMaterializeKit_SeedFileSystem = {
      * is treated as having no symlinks.
      */
     realPath?: (absolutePath: string) => string;
+    /**
+     * Reads a file that must stay inside a root, holding against a folder or file swapped for
+     * a symlink during the read (see `EnvMaterializeKit_readContainedTextFile`). When present,
+     * seed reads use it instead of `readTextFile`. The node adapter provides it; a custom port
+     * that reads real files should pass `EnvMaterializeKit_readContainedTextFile` here.
+     */
+    readContainedTextFile?: (options: EnvMaterializeKit_ContainedReadOptions) => string | null;
 };
 /**
  * A place seed files are read from. Implementations never expose values through
@@ -120,18 +129,6 @@ export declare class EnvMaterializeKit_MissingSeedLayerError extends Error {
     });
 }
 /**
- * Resolves every symlink in a path. For a path that does not exist, resolves the nearest
- * existing ancestor and appends the remaining segments.
- *
- * @param absolutePath - Absolute path.
- * @returns The canonical path.
- * @example
- * ```typescript
- * EnvMaterializeKit_realPathOfNearestExisting("/tmp/seeds/missing.env"); // "/private/tmp/seeds/missing.env" on macOS
- * ```
- */
-export declare function EnvMaterializeKit_realPathOfNearestExisting(absolutePath: string): string;
-/**
  * Returns the node file system adapter used when no test double is injected.
  *
  * @returns File access backed by `node:fs`, including symlink resolution.
@@ -143,26 +140,16 @@ export declare function EnvMaterializeKit_realPathOfNearestExisting(absolutePath
  */
 export declare function EnvMaterializeKit_nodeSeedFileSystem(): EnvMaterializeKit_SeedFileSystem;
 /**
- * Tells whether a path is the root itself or lies inside it.
- *
- * @param rootPath - Absolute root.
- * @param candidate - Absolute path to test.
- * @returns True when `candidate` is inside `rootPath`.
- * @example
- * ```typescript
- * EnvMaterializeKit_isPathInside("/seeds", "/seeds/a.env"); // true
- * EnvMaterializeKit_isPathInside("/seeds", "/seeds-other/a.env"); // false
- * ```
- */
-export declare function EnvMaterializeKit_isPathInside(rootPath: string, candidate: string): boolean;
-/**
  * Creates a seed source backed by a folder on this machine. Seed files are read with Node's
  * dotenv grammar (`util.parseEnv`). Every path is checked against the root before reading,
- * lexically and with symlinks resolved.
+ * lexically and with symlinks resolved. With the node adapter (the default), reads also hold
+ * against a folder or file swapped for a symlink between the check and the read, and a
+ * listing is checked again after it was taken.
  *
  * @param options - The folder and optional file system double.
  * @param options.rootPath - Absolute path of the seed folder.
  * @param options.fileSystem - File access; defaults to `node:fs`.
+ * @param options.containmentHooks - Test seams passed to contained reads; leave out in real use.
  * @returns A seed source of kind `directory`.
  * @example
  * ```typescript
@@ -173,6 +160,7 @@ export declare function EnvMaterializeKit_isPathInside(rootPath: string, candida
 export declare function EnvMaterializeKit_createDirectorySeedSource(options: {
     rootPath: string;
     fileSystem?: EnvMaterializeKit_SeedFileSystem;
+    containmentHooks?: EnvMaterializeKit_ContainmentHooks;
 }): EnvMaterializeKit_SeedSource;
 /**
  * Builds a seed source from config using a registry of factories per kind. Adding a new

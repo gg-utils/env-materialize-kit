@@ -105,6 +105,10 @@
       "types": "./dist/managed-keys.d.ts",
       "default": "./dist/managed-keys.js"
     },
+    "./contained-paths": {
+      "types": "./dist/contained-paths.d.ts",
+      "default": "./dist/contained-paths.js"
+    },
     "./atomic-file": {
       "types": "./dist/atomic-file.d.ts",
       "default": "./dist/atomic-file.js"

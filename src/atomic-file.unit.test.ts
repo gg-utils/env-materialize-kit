@@ -76,3 +76,38 @@ void test("symlinked destinations and non-files are refused before anything is w
     assert.equal(fs.readFileSync(target, "utf8"), "A=1\n");
   });
 });
+
+void test("a symlinked parent folder is refused by default and allowed with the option", () => {
+  withDirectory((directory) => {
+    const real = path.join(directory, "real");
+    const linked = path.join(directory, "linked");
+    fs.mkdirSync(real);
+    fs.symlinkSync(real, linked);
+    const filePath = path.join(linked, "nested", "file.env");
+    assert.throws(() => {
+      EnvMaterializeKit_writeTextFileAtomically(filePath, "A=1\n", { rootPath: directory });
+    }, /Refusing to write below a symlinked folder/u);
+    assert.throws(() => {
+      EnvMaterializeKit_writeTextFileAtomically(filePath, "A=1\n");
+    }, /Refusing to write below a symlinked folder/u);
+    assert.deepEqual(fs.readdirSync(real), [], "nothing was created through the link");
+    EnvMaterializeKit_writeTextFileAtomically(filePath, "A=1\n", {
+      rootPath: directory,
+      allowSymlinkedParents: true,
+    });
+    assert.equal(fs.readFileSync(path.join(real, "nested", "file.env"), "utf8"), "A=1\n");
+  });
+});
+
+void test("a destination root that is itself a symlink is accepted", () => {
+  withDirectory((directory) => {
+    const real = path.join(directory, "checkout");
+    const linkedRoot = path.join(directory, "checkout-link");
+    fs.mkdirSync(real);
+    fs.symlinkSync(real, linkedRoot);
+    EnvMaterializeKit_writeTextFileAtomically(path.join(linkedRoot, ".local", "f.env"), "A=1\n", {
+      rootPath: linkedRoot,
+    });
+    assert.equal(fs.readFileSync(path.join(real, ".local", "f.env"), "utf8"), "A=1\n");
+  });
+});
