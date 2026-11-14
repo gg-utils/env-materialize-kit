@@ -251,10 +251,13 @@ These three modules let an adapter keep its own code to data tables.
   with no desired value, such as secrets the seeds do not hold, are kept. Results and
   `EnvMaterializeKit_formatManagedKeyResult` carry key names and statuses only.
 - `atomic-file`: `EnvMaterializeKit_writeTextFileAtomically` writes a temp file beside the destination, fsyncs it
-  and renames it over the destination, so after a crash or failure a reader sees either the complete old or the
-  complete new file, never a truncated mix ("atomic" means this crash guarantee, not protection against concurrent
-  changes). The destination keeps its mode; new
-  files are owner-only. A destination that is a symlink or not a regular file is refused. `managed-keys` writes
+  and renames it over the destination. On file systems with atomic rename, readers never see a partly written
+  replacement during normal operation ("atomic" means this, not protection against concurrent changes). A failure
+  before the replacement leaves the destination unchanged, or absent if it did not exist; a failure after it leaves
+  the complete new file. On a handled failure the writer tries to remove its temp file; a failed cleanup or a killed
+  process can leave it behind, and a cleanup error can replace the original error. Flushing the folder is best
+  effort, so what survives an operating-system crash or power loss depends on the file system and storage. The
+  destination keeps its mode bits (not its owner, ACLs or extended attributes); new files are owner-only by default. A destination that is a symlink or not a regular file is refused. `managed-keys` writes
   through it by default.
   Parent folder policy: a write is refused when any folder between the destination's root and the file is a
   symlink. Pass `rootPath` (such as the checkout) to say where the root is; the root itself may be a symlink.
