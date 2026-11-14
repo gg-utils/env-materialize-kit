@@ -2,10 +2,12 @@
  * @fileoverview Crash-atomic, symlink-refusing text file writes.
  *
  * A write goes to an exclusive temporary file beside the destination, is flushed with
- * `fsync`, then renamed over the destination, so after a crash or failed write a reader sees
- * either the complete old or the complete new file, never a truncated mix. "Atomic" here means that crash guarantee,
- * not protection against concurrent changes. The destination keeps its permission bits; a
- * new file gets the mode the caller gives (owner-only by default). A destination that is a
+ * `fsync`, then renamed over the destination. On file systems with atomic rename, readers never
+ * see a partly written replacement during normal operation. "Atomic" means this, not protection
+ * against concurrent changes. Flushing the folder is best effort, so what survives an
+ * operating-system crash or power loss depends on the file system and storage. The destination
+ * keeps its permission bits (not its owner, ACLs or extended attributes); a new file gets the
+ * mode the caller gives (owner-only by default). A destination that is a
  * symlink, or anything other than a regular file, is refused when checked.
  *
  * Parent folder policy: by default a write is refused when any folder between the
@@ -91,10 +93,11 @@ export declare function EnvMaterializeKit_nodeAtomicFileOperations(): EnvMateria
  * @param options - Mode for a new file, the destination's root and the parent folder policy.
  * @param operations - File operations; defaults to `node:fs`.
  * @throws Error naming the path when the destination is a symlink or not a regular file,
- * when a parent folder is a symlink and that is not allowed, or when any step fails. A reader
- * then sees either the complete old or the complete new file, never a truncated mix: a
- * failure before the rename removes the temp file and leaves the old file, and a failure
- * after it (flushing the folder) leaves the complete new file.
+ * when a parent folder is a symlink and that is not allowed, or when any step fails. A
+ * failure before the replacement leaves the destination unchanged, or absent if it did not
+ * exist, and the writer tries to remove its temp file; if that removal fails, the temp file
+ * stays and the cleanup error can replace the original one. A failure after the replacement
+ * (closing the folder) leaves the complete new file. A killed process skips the cleanup.
  * @example
  * ```typescript
  * EnvMaterializeKit_writeTextFileAtomically("/app/.env.local", "A=1\n", { mode: 0o600, rootPath: "/app" });
